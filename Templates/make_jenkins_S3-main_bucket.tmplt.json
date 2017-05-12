@@ -1,0 +1,27 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template sets up the S3 Bucket used by an Jenkins instance.",
+  "Parameters": {
+    "JenkinsBucket": {
+      "Description": "S3 Bucket to host Jenkins content.",
+      "Type": "String",
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$"
+    }
+  },
+  "Resources": {
+    "JenkinsS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccessControl": "BucketOwnerFullControl",
+        "BucketName": { "Ref" : "JenkinsBucket" }
+      }
+    }
+  },
+  "Outputs": {
+    "JenkinsBucketName": {
+      "Value": { "Ref": "JenkinsS3Bucket" },
+      "Description": "Artifactory artifact S3 Bucket Name"
+    }
+  }
+}
