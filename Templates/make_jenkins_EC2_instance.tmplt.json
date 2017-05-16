@@ -711,6 +711,7 @@
               "      firewall-cmd --zone=public --add-port=80/tcp --permanent\n",
               "      firewall-cmd --zone=public --add-port=443/tcp --permanent\n",
               "      firewall-cmd --zone=public --add-port=8080/tcp --permanent\n",
+              "      firewall-cmd --zone=public --add-port=32000/tcp --permanent\n,
               "      firewall-cmd --reload\n",
               "      \n",
               "      # Export cert bundle ENVs\n",
