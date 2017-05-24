@@ -38,6 +38,7 @@ function err_exit {
 
 ##
 ## Add firewall exceptions
+echo "Adding exceptions to firewalld... "
 setenforce 0 || err_exit "Failed to temp-disable SELinux"
 firewall-offline-cmd --enabled
 for PORT in "${FWPORTS}"
@@ -51,5 +52,6 @@ firewall-cmd --reload || err_exit "Failed reloading firewalld configuration."
 setenforce 1 || err_exit "Failed to re-enable SELinux"
 
 # Install extra RPMs
-yum --enablerepo="${EPELREPO" install -y "${BONUSRPMS}" || \
+echo "Installing supplemental RPMs... "
+yum --enablerepo="${EPELREPO}" install -y "${BONUSRPMS}" || \
   err_exit "Failed to install one or more requested RPMs."
