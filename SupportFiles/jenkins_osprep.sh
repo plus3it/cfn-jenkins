@@ -3,6 +3,7 @@
 # Install supplemental RPMs
 #
 #################################################################
+# shellcheck disable=SC2086
 PROGNAME="$(basename ${0})"
 EPELREPO="${JENKINS_EPEL_REPO:-UNDEF}"
 FWPORTS=(
@@ -44,7 +45,7 @@ firewall-offline-cmd --enabled
 for PORT in "${FWPORTS[@]}"
 do
    printf "Adding firewalld exception for ${PORT}/tcp... "
-   firewall-cmd --zone=public --add-port=${PORT}/tcp --permanent || \
+   firewall-cmd --zone=public --add-port="${PORT}"/tcp --permanent || \
      err_exit "Failed to add firewalld exception for ${PORT}/tcp."
 done
 printf "Reloading firewalld configuration... "
