@@ -137,6 +137,11 @@
       "Description": "URL to the child-template for creating the jenkins-bucket(s) IAM roles.",
       "Type": "String"
     },
+    "JenkinsOsPrepScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OS-preparation script.",
+      "Type": "String"
+    },
     "JenkinsRepoKeyURL": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Default": "https://jenkins-ci.org/redhat/jenkins-ci.org.key",
@@ -330,6 +335,7 @@
           "PyStache": { "Ref": "PyStache" },
           "CfnEndpointUrl": { "Ref": "CfnEndpointUrl" },
           "CfnBootstrapUtilsUrl": { "Ref": "CfnBootstrapUtilsUrl" },
+          "JenkinsOsPrepScriptUrl": { "Ref": "JenkinsOsPrepScriptUrl" },
           "JenkinsRepoKeyURL": { "Ref": "JenkinsRepoKeyURL" },
           "JenkinsRepoURL": { "Ref": "JenkinsRepoURL" },
           "SecurityGroupIds": {
