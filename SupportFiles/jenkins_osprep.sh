@@ -44,7 +44,7 @@ setenforce 0 || err_exit "Failed to temp-disable SELinux"
 firewall-offline-cmd --enabled
 for PORT in "${FWPORTS[@]}"
 do
-   printf "Adding firewalld exception for ${PORT}/tcp... "
+   printf "Adding firewalld exception for %s/tcp... " "${PORT}"
    firewall-cmd --zone=public --add-port="${PORT}"/tcp --permanent || \
      err_exit "Failed to add firewalld exception for ${PORT}/tcp."
 done
