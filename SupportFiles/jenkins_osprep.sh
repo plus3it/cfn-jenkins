@@ -13,6 +13,7 @@ FWPORTS=(
          32000
         )
 BONUSRPMS=(
+           git
            bzip2
            pylint
            pyunit
