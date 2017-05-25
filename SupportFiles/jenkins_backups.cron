@@ -1,0 +1,4 @@
+# Daily backup of JENKINS_HOME to S3
+30 17 * * * /usr/bin/aws s3 sync --delete /var/lib/jenkins s3://devops-toolchain/jenkins-master/backups/daily/$(date "+\%w")/JENKINS_HOME/
+# backup JENKINS_HOME to S3
+*/20 * * * * /usr/bin/aws s3 sync --delete /var/lib/jenkins s3://devops-toolchain/jenkins-master/backups/sync/JENKINS_HOME/
