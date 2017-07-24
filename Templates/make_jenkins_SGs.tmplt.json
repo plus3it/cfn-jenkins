@@ -1,0 +1,61 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {},
+  "Description": "Template for creating Security groups used to support Jenkins",
+  "Mappings": {},
+  "Outputs": {
+    "AppSg": {
+      "Description": "Application-access Security Group",
+      "Value": {
+        "Ref": "AppSg"
+      }
+    }
+  },
+  "Parameters": {
+    "TargetVPC": {
+      "AllowedPattern": "^vpc-[0-9a-f]*$",
+      "Description": "ID of the VPC to deploy networked components into.",
+      "Type": "AWS::EC2::VPC::Id"
+    }
+  },
+  "Resources": {
+    "AppSg": {
+      "Properties": {
+        "GroupDescription": "Application access-ports Security Group",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "8080",
+            "IpProtocol": "tcp",
+            "ToPort": "8080"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Jenkins application Security Group"
+          }
+        ],
+        "VpcId": {
+          "Ref": "TargetVPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "UpdateAppSg": {
+      "DependsOn": "AppSg",
+      "Properties": {
+        "FromPort": "0",
+        "GroupId": {
+          "Ref": "AppSg"
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Ref": "AppSg"
+        },
+        "ToPort": "65535"
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress"
+    }
+  }
+}
