@@ -2,17 +2,16 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "This template sets up the IAM role needed by an Jenkins instance",
   "Parameters": {
-    "JenkinsBucket": {
-      "Description": "S3 Bucket to host Jenkins content.",
-      "Type": "String",
-      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$"
+    "JenkinsBucketArn": {
+      "Description": "Arn of the S3 Bucket used to host Jenkins backups.",
+      "Type": "String"
     }
   },
   "Resources": {
     "InstancePolicy" : {
       "Type": "AWS::IAM::ManagedPolicy",
       "Properties": {
-        "Description" : "Policy to provide instance-level access to needed AWS-level resources",
+        "Description" : "Policy to provide instance-level access to needed AWS-level resources.",
         "Path" : "/",
         "PolicyDocument": {
           "Version" : "2012-10-17",
@@ -24,13 +23,11 @@
               ],
               "Resource": [
                 { "Fn::Join" : [ "", [
-                  "arn:aws:s3:::",
-                    { "Ref" : "JenkinsBucket" },
+                    { "Ref" : "JenkinsBucketArn" },
                     ""
                 ]]},
                 { "Fn::Join" : [ "", [
-                  "arn:aws:s3:::",
-                    { "Ref" : "JenkinsBucket" },
+                    { "Ref" : "JenkinsBucketArn" },
                     "/*"
                 ]]}
               ]
