@@ -11,21 +11,131 @@
           "Parameters": [
             "SecurityGroupTemplate",
             "BucketTemplate",
-            "IamRoleTemplate"
+            "IamRoleTemplate",
+            "Ec2Template"
           ]
         }
       ]
     }
   },
   "Parameters": {
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL the file containing the admin users' SSH public keys.",
+      "Type": "String"
+    },
+    "AmiDistro": {
+      "AllowedValues": [
+        "CentOS",
+        "RedHat"
+      ],
+      "Default": "CentOS",
+      "Description": "Linux distro of the AMI",
+      "Type": "String"
+    },
+    "AmiId": {
+      "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
+      "Description": "ID of the AMI to launch",
+      "Type": "String"
+    },
+    "AppVolumeDevice": {
+      "AllowedValues": [
+        "",
+        "/dev/xvdf",
+        "/dev/xvdg",
+        "/dev/xvdh",
+        "/dev/xvdi",
+        "/dev/xvdj"
+      ],
+      "Default": "",
+      "Description": "Device to mount an extra EBS volume. Leave blank to launch without an extra application volume",
+      "Type": "String"
+    },
+    "AppVolumeMountPath": {
+      "AllowedPattern": "/.*",
+      "Default": "/var/lib/jenkins",
+      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "AppVolumeSize": {
+      "ConstraintDescription": "Must be between 1GB and 16384GB.",
+      "Default": "1",
+      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "MaxValue": "16384",
+      "MinValue": "1",
+      "Type": "Number"
+    },
+    "AppVolumeType": {
+      "AllowedValues": [
+        "gp2",
+        "io1",
+        "sc1",
+        "st1",
+        "standard"
+      ],
+      "Default": "gp2",
+      "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "BackupCronURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the Jenkins backup cron-file",
+      "Type": "String"
+    },
+    "BackupFolder": {
+      "AllowedPattern": "^[a-zA-Z]*[a-z0-9-]*[a-zA-Z]*$",
+      "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
     "BucketTemplate": {
-       "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
       "Type": "String"
     },
+    "CfnEndpointUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "",
+      "Description": "URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
+      "Type": "String"
+    },
+    "DnsSuffix": {
+      "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
+      "Type": "String"
+    },
+    "Ec2Template": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
+      "Type": "String"
+    },
+    "EpelRepo": {
+      "AllowedPattern": "^[a-z][a-z0-9-]*$",
+      "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
+      "Default": "epel",
+      "Description": "Name of network's EPEL repo.",
+      "Type": "String"
+    },
     "IamRoleTemplate": {
-       "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the child-template for creating the Jenkins IAM instance role.",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "c4.large",
+        "c4.xlarge",
+        "m3.xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "r3.2xlarge"
+      ],
+      "Default": "t2.micro",
+      "Description": "Amazon EC2 instance type",
       "Type": "String"
     },
     "JenkinsBackupBucket": {
@@ -33,10 +143,91 @@
       "Description": "S3 Bucket to host backup files (if left blank, a value will be computed).",
       "Type": "String"
     },
+    "JenkinsOsPrepScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OS-preparation script.",
+      "Type": "String"
+    },
+    "JenkinsRepoKeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://jenkins-ci.org/redhat/jenkins-ci.org.key",
+      "Description": "URL to the Jenkins yum-repository GPG key",
+      "Type": "String"
+    },
+    "JenkinsRepoURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "http://pkg.jenkins.io/redhat",
+      "Description": "URL to the Jenkins yum-repository",
+      "Type": "String"
+    },
+    "KeyPairName": {
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "NoPublicIp": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "true",
+      "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
+      "Type": "String"
+    },
+    "NoReboot": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
+      "Type": "String"
+    },
+    "NoUpdates": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, SystemPrep _always_ installs updates)",
+      "Type": "String"
+    },
+    "PipIndexFips": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://pypi.org/simple/",
+      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
+      "Type": "String"
+    },
+    "PipRpm": {
+      "Default": "python2-pip",
+      "Description": "Name of preferred pip RPM.",
+      "Type": "String"
+    },
+    "ProvisionUser": {
+      "AllowedPattern": "[a-z0-9]{6,12}+",
+      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
+      "Default": "autojenk",
+      "Description": "Default login user account name.",
+      "Type": "String"
+    },
+    "PyStache": {
+      "Default": "pystache",
+      "Description": "Name of preferred pystache RPM.",
+      "Type": "String"
+    },
     "SecurityGroupTemplate": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the child-template for creating the Jenkins network security-groups.",
       "Type": "String"
+    },
+    "ServerHostname": {
+      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
+      "Default": "jenkins-master",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
+      "Type": "String"
+    },
+    "SubnetIds": {
+      "Description": "Subnet to associate to the Instance",
+      "Type": "AWS::EC2::Subnet::Id"
     },
     "TargetVPC": {
       "AllowedPattern": "^vpc-[0-9a-f]*$",
@@ -45,6 +236,112 @@
     }
   },
   "Resources": {
+    "Ec2Res": {
+      "Properties": {
+        "Parameters": {
+          "AdminPubkeyURL": {
+            "Ref": "AdminPubkeyURL"
+          },
+          "AmiDistro": {
+            "Ref": "AmiDistro"
+          },
+          "AmiId": {
+            "Ref": "AmiId"
+          },
+          "AppVolumeDevice": {
+            "Ref": "AppVolumeDevice"
+          },
+          "AppVolumeMountPath": {
+            "Ref": "AppVolumeMountPath"
+          },
+          "AppVolumeSize": {
+            "Ref": "AppVolumeSize"
+          },
+          "AppVolumeType": {
+            "Ref": "AppVolumeType"
+          },
+          "BackupBucket": {
+            "Fn::GetAtt": [
+              "S3Res",
+              "Outputs.JenkinsBucketName"
+            ]
+          },
+          "BackupCronURL": {
+            "Ref": "BackupCronURL"
+          },
+          "BackupFolder": {
+            "Ref": "BackupFolder"
+          },
+          "CfnEndpointUrl": {
+            "Ref": "CfnEndpointUrl"
+          },
+          "DnsSuffix": {
+            "Ref": "DnsSuffix"
+          },
+          "EpelRepo": {
+            "Ref": "EpelRepo"
+          },
+          "InstanceRole": {
+            "Fn::GetAtt": [
+              "IamRes",
+              "Outputs.InstanceRoleProfile"
+            ]
+          },
+          "InstanceType": {
+            "Ref": "InstanceType"
+          },
+          "JenkinsOsPrepScriptUrl": {
+            "Ref": "JenkinsOsPrepScriptUrl"
+          },
+          "JenkinsRepoKeyURL": {
+            "Ref": "JenkinsRepoKeyURL"
+          },
+          "JenkinsRepoURL": {
+            "Ref": "JenkinsRepoURL"
+          },
+          "KeyPairName": {
+            "Ref": "KeyPairName"
+          },
+          "NoPublicIp": {
+            "Ref": "NoPublicIp"
+          },
+          "NoReboot": {
+            "Ref": "NoReboot"
+          },
+          "NoUpdates": {
+            "Ref": "NoUpdates"
+          },
+          "PipIndexFips": {
+            "Ref": "PipIndexFips"
+          },
+          "PipRpm": {
+            "Ref": "PipRpm"
+          },
+          "ProvisionUser": {
+            "Ref": "ProvisionUser"
+          },
+          "PyStache": {
+            "Ref": "PyStache"
+          },
+          "SecurityGroupIds": {
+            "Fn::GetAtt": [
+              "SgRes",
+              "Outputs.AppSg"
+            ]
+          },
+          "ServerHostname": {
+            "Ref": "ServerHostname"
+          },
+          "SubnetIds": {
+            "Ref": "SubnetIds"
+          }
+        },
+        "TemplateURL": {
+          "Ref": "Ec2Template"
+        }
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
     "IamRes": {
       "Properties": {
         "Parameters": {

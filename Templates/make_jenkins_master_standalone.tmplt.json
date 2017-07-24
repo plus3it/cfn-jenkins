@@ -178,34 +178,11 @@
       "Type": "AWS::EC2::Subnet::Id",
       "Description": "Subnet to associate to the Instance"
     },
-    "SystemPrepBootstrapUrl": {
-      "Description": "URL to the SystemPrep Bootstrapper",
-      "Type": "String",
-      "Default": "https://s3.amazonaws.com/systemprep/BootStrapScripts/SystemPrep-Bootstrap--Linux.sh",
-      "AllowedPattern": "^http://.*\\.sh$|^https://.*\\.sh$"
-    },
-    "SystemPrepEnvironment": {
-      "Description": "Environment in which the instance is being deployed",
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": [
-        "false",
-        "dev",
-        "test",
-        "prod"
-      ]
-    },
     "CfnEndpointUrl": {
       "Description": "URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
       "Type": "String",
       "Default": "",
       "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    },
-    "CfnBootstrapUtilsUrl": {
-      "Description": "URL to aws-cfn-bootstrap-latest.tar.gz",
-      "Type": "String",
-      "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
-      "AllowedPattern": "^http://.*\\tar\\.gz$|^https://.*\\.tar\\.gz$"
     },
     "JenkinsRepoURL": {
       "Description": "URL to the Jenkins yum-repository",
