@@ -143,6 +143,11 @@
       "Description": "S3 Bucket to host backup files (if left blank, a value will be computed).",
       "Type": "String"
     },
+    "JenkinsAppinstallScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of Jenkins application-installer script.",
+      "Type": "String"
+    },
     "JenkinsOsPrepScriptUrl": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL of OS-preparation script.",
@@ -289,6 +294,9 @@
           },
           "InstanceType": {
             "Ref": "InstanceType"
+          },
+          "JenkinsAppinstallScriptUrl": {
+            "Ref": "JenkinsAppinstallScriptUrl"
           },
           "JenkinsOsPrepScriptUrl": {
             "Ref": "JenkinsOsPrepScriptUrl"
