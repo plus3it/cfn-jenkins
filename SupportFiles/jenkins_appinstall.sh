@@ -37,7 +37,7 @@ yum install -y jenkins || err_exit 'Jenkins install failed'
      
 # Restore JENKINS_HOME content (if available)
 echo "Attempting to restore JENKINS_HOME from S3... "
-su -s /bin/bash jenkins -c \"/usr/bin/aws s3 sync --quiet ${JENKHOMEURL} /var/lib/jenkins"
+su -s /bin/bash jenkins -c "/usr/bin/aws s3 sync --quiet ${JENKHOMEURL} /var/lib/jenkins"
 
 if [[ -f /var/lib/jenkins/config.xml ]]
 then
@@ -65,13 +65,9 @@ systemctl start jenkins
  echo "/sync/JENKINS_HOME/\"";
 ) | crontab -
 
-# backup JENKINS_HOME to S3
-*/20 * * * * /usr/bin/aws s3 sync --delete --quiet /var/lib/jenkins s3://devops-toolchain/jenkins-master/backups/sync/JENKINS_HOME/
-
-     
 # Re-enable SELinux
-print "Reverting SELinux enforcing-mode... "
-setenforce "${SELMODE}" || err_exit 'Could not change SEL-mode'
+printf "Reverting SELinux enforcing-mode... "
+setenforce "${SELMODE}" && echo || err_exit 'Could not change SEL-mode'
 
 # Display initial admin token on fresh install first-boot
 if [[ ${FRESHINSTALL} -eq 0 ]]
