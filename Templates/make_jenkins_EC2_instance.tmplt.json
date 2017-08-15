@@ -388,7 +388,7 @@
     }
   },
   "Resources": {
-    "CfnLaunchConfig": {
+    "JenkinsMaster": {
       "Type": "AWS::EC2::Instance",
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
@@ -435,10 +435,10 @@
                   "Fn::Join" : ["", [
                     "[cfn-auto-reloader-hook]\n",
                     "triggers=post.update\n",
-                    "path=Resources.CfnLaunchConfig.Metadata\n",
+                    "path=Resources.JenkinsMaster.Metadata\n",
                     "action=/opt/aws/bin/cfn-init -v -c update",
                     " --stack ", { "Ref" : "AWS::StackName" },
-                    " --resource CfnLaunchConfig",
+                    " --resource JenkinsMaster",
                     {
                       "Fn::If" : [
                         "AssignInstanceRole",
@@ -691,7 +691,7 @@
               "      function error_exit {\n",
               "         /opt/aws/bin/cfn-signal -e 1 --stack ",
                            { "Ref" : "AWS::StackName" },
-                           " --resource CfnLaunchConfig\n",
+                           " --resource JenkinsMaster\n",
               "         exit 1\n",
               "      }\n",
               "      \n",
@@ -707,7 +707,7 @@
               "      # Initialize the Cfn subsystems\n",
               "      /opt/aws/bin/cfn-init -s ",
                         { "Ref" : "AWS::StackName" },
-                                 " -r CfnLaunchConfig ",
+                                 " -r JenkinsMaster ",
                       " --region ",
                          { "Ref" : "AWS::Region" },
                          " && echo 'Successfully ran cfn-init'",
@@ -744,7 +744,7 @@
               "      # Signal Cfn that we're good\n",
               "      /opt/aws/bin/cfn-signal -e 0 --stack ",
                         { "Ref" : "AWS::StackName" },
-                        " --resource CfnLaunchConfig --url ",
+                        " --resource JenkinsMaster --url ",
                         { "Ref" : "CfnEndpointUrl" },
                         "\n",
               ""
