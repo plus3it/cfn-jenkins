@@ -1,0 +1,421 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "AssignInstanceRole": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            { "Ref": "InstanceRole" },
+            ""
+          ]
+        }
+      ]
+    },
+    "AssignPublicIp": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            { "Ref": "NoPublicIp" },
+            "true"
+          ]
+        }
+      ]
+    },
+    "AssignStaticPrivateIp": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            { "Ref": "PrivateIp" },
+            ""
+          ]
+        }
+      ]
+    },
+    "CreateAppVolume": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            { "Ref": "AppVolumeDevice" },
+            ""
+          ]
+        }
+      ]
+    },
+    "UseCfnUrl": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            { "Ref": "CfnEndpointUrl" },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Description": "Template to deploy (Linux-based) Jenkins agents via auto-scaling mechanisms.",
+  "Mappings": {},
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "EC2 Instance Configuration"
+          },
+          "Parameters": [
+            "AmiId",
+            "InstanceType",
+            "InstanceRole",
+            "KeyPairName",
+            "NoPublicIp",
+            "NoReboot",
+            "NoUpdates",
+            "Hostname",
+            "Domainname",
+            "SecurityGroupIds",
+            "AdminPubkeyURL"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins EBS Volume (Optional)"
+          },
+          "Parameters": [
+            "AppVolumeDevice",
+            "AppVolumeMountPath",
+            "AppVolumeSize",
+            "AppVolumeType"
+          ]
+        }
+      ]
+    }
+  },
+  "Outputs": {},
+  "Parameters": {
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL the file containing the admin group's SSH public keys.",
+      "Type": "String"
+    },
+    "AmiId": {
+      "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
+      "Description": "ID of the AMI to launch",
+      "Type": "String"
+    },
+    "AppVolumeDevice": {
+      "AllowedValues": [
+        "",
+        "/dev/xvdf",
+        "/dev/xvdg",
+        "/dev/xvdh",
+        "/dev/xvdi",
+        "/dev/xvdj"
+      ],
+      "Default": "",
+      "Description": "(Optional) Device to mount an extra EBS volume. Leave blank to launch without an extra application volume",
+      "Type": "String"
+    },
+    "AppVolumeMountPath": {
+      "AllowedPattern": "/.*",
+      "Default": "/var/jenkins",
+      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "AppVolumeSize": {
+      "ConstraintDescription": "Must be between 1GB and 16384GB.",
+      "Default": "1",
+      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "MaxValue": "16384",
+      "MinValue": "1",
+      "Type": "Number"
+    },
+    "AppVolumeType": {
+      "AllowedValues": [
+        "gp2",
+        "io1",
+        "sc1",
+        "st1",
+        "standard"
+      ],
+      "Default": "gp2",
+      "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "CfnEndpointUrl": {
+      "AllowedPattern": "^$|^http[s]?://.*$",
+      "Default": "https://cloudformation.us-east-1.amazonaws.com",
+      "Description": "(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
+      "Type": "String"
+    },
+    "Domainname": {
+      "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
+      "Description": "Suffix for Jenkins's hostname and DNS record",
+      "Type": "String"
+    },
+    "EpelRepo": {
+      "AllowedPattern": "^[a-z][a-z0-9-]*$",
+      "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
+      "Default": "epel",
+      "Description": "Name of network's EPEL repo.",
+      "Type": "String"
+    },
+    "Hostname": {
+      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
+      "Description": "Node-name for Jenkins's hostname and DNS record",
+      "Type": "String"
+    },
+    "InstanceRole": {
+      "Default": "",
+      "Description": "(Optional) IAM instance role to apply to the instance",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "c4.large",
+        "c4.xlarge",
+        "m4.large",
+        "m4.xlarge"
+      ],
+      "Default": "t2.micro",
+      "Description": "Amazon EC2 instance type",
+      "Type": "String"
+    },
+    "KeyPairName": {
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "NoPublicIp": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "true",
+      "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
+      "Type": "String"
+    },
+    "NoReboot": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
+      "Type": "String"
+    },
+    "NoUpdates": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
+      "Type": "String"
+    },
+    "NodesourceSetupUri": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://rpm.nodesource.com/setup_8.x",
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "String"
+    },
+    "PipRpm": {
+      "Default": "python2-pip",
+      "Description": "Name of preferred pip RPM.",
+      "Type": "String"
+    },
+    "PrivateIp": {
+      "Default": "",
+      "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
+      "Type": "String"
+    },
+    "ProvisionUser": {
+      "AllowedPattern": "[a-z0-9]{6,12}+",
+      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
+      "Default": "jenkagent",
+      "Description": "Default login user account name.",
+      "Type": "String"
+    },
+    "PyStache": {
+      "Default": "pystache",
+      "Description": "Name of preferred pystache RPM.",
+      "Type": "String"
+    },
+    "PypiIndexUrl": {
+      "AllowedPattern": "^http[s]?://.*$",
+      "Default": "https://pypi.org/simple",
+      "Description": "URL to the PyPi Index",
+      "Type": "String"
+    },
+    "SecurityGroupIds": {
+      "Description": "List of security groups to apply to the instance",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "SubnetList": {
+      "Description": "ID of the subnet to assign to the instance",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    }
+  },
+  "Resources": {
+    "JenkinsAgentAsg": {
+      "Properties": {
+        "AvailabilityZones": {
+          "Fn::GetAZs": ""
+        },
+        "DesiredCapacity": "2",
+        "LaunchConfigurationName": { "Ref": "JenkinsAgentLc" },
+        "MaxSize": "3",
+        "MinSize": "1",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Jenkins (Linux) Agent",
+            "PropagateAtLaunch": "true"
+          }
+        ],
+        "VPCZoneIdentifier": { "Ref": "SubnetList" }
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup"
+    },
+    "JenkinsAgentLc": {
+      "Properties": {
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "DeleteOnTermination": "true",
+              "VolumeSize": "20",
+              "VolumeType": "gp2"
+            }
+          },
+          {
+            "Fn::If": [
+              "CreateAppVolume",
+              {
+                "DeviceName": { "Ref": "AppVolumeDevice" },
+                "Ebs": {
+                  "DeleteOnTermination": "true",
+                  "VolumeSize": { "Ref": "AppVolumeSize" },
+                  "VolumeType": { "Ref": "AppVolumeType" }
+                }
+              },
+              { "Ref": "AWS::NoValue" }
+            ]
+          }
+        ],
+        "IamInstanceProfile": {
+          "Fn::If": [
+            "AssignInstanceRole",
+            { "Ref": "InstanceRole" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
+        "ImageId": { "Ref": "AmiId" },
+        "InstanceType": { "Ref": "InstanceType" },
+        "KeyName": { "Ref": "KeyPairName" },
+        "SecurityGroups": { "Ref": "SecurityGroupIds" },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#cloud-config\n",
+                "\n",
+                "system_info:\n",
+                "  default_user:\n",
+                "    name: ",
+                { "Ref": "ProvisionUser" },
+                "\n",
+                "\n",
+                {
+                  "Fn::If": [
+                    "CreateAppVolume",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "bootcmd:\n",
+                          "- cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
+                          { "Ref": "AppVolumeDevice" },
+                          "\n",
+                          "mounts:\n",
+                          "- [ ",
+                          { "Ref": "AppVolumeDevice" },
+                          ", ",
+                          { "Ref": "AppVolumeMountPath" },
+                          " ]\n"
+                        ]
+                      ]
+                    },
+                    { "Ref": "AWS::NoValue" }
+                  ]
+                },
+                "\n",
+                "runcmd:\n",
+                "  - |\n",
+                "    # Export cert bundle ENVs\n",
+                "    export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
+                "    export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n\n",
+                "    \n",
+                "    # Define our error-handler\n",
+                "    function err_exit {\n",
+                "     echo \"${1}\"\n",
+                "     logger -p kern.crit -t UserData \"${1}\"\n",
+                "     exit 1\n",
+                "    }\n",
+                "    \n",
+                "    # Install RPMs needed by the cfn-tools.\n",
+                "    yum --enablerepo=",
+                { "Ref": "EpelRepo" },
+                " install -y ",
+                { "Ref": "PyStache" },
+                " ",
+                { "Ref": "PipRpm" },
+                " || err_exit 'Could not install Cfn dependencies.'\n",
+                "    \n",
+                "    # Install admin-groups keys to provisioning user\n",
+                "    printf \"Downloading admin-group's keys... \"\n",
+                "    curl -skL ",
+                     { "Ref": "AdminPubkeyURL" },
+                     " -o /tmp/admin.keys && echo 'Success!' || err_exit ",
+                     "'Could not download admin keys'\n",
+                "    printf \"Merging admin-group's keys... \"\n",
+                "    cat /tmp/admin.keys >> /home/",
+                     { "Ref": "ProvisionUser" },
+                     "/.ssh/authorized_keys && echo 'Success!' || err_exit ",
+                     "'Could not add admin keys'\n",
+                "    \n",
+                "    # Install nodejs repo-def\n",
+                "    curl -sL ",
+                { "Ref": "NodesourceSetupUri" },
+                " | bash -\n",
+                "    \n",
+                "    # Install packages needed to fully-enable the agent\n",
+                "    yum --enablerepo=epel install -y @development anaconda",
+                " ansible fpm2 groovy maven python-nose python-nose2",
+                " ruby rubygems-devel nodejs\n",
+                "    \n",
+                "    # Set perms on the jenkins dir\n",
+                "    if [[ -d ",
+                { "Ref": "AppVolumeMountPath" },
+                " ]]\n",
+                "    then\n",
+                "     chmod 1777 ",
+                { "Ref": "AppVolumeMountPath" },
+                " \n",
+                "    else\n",
+                "     install -d -m 001777 ",
+                { "Ref": "AppVolumeMountPath" },
+                " \n",
+                "    fi\n",
+                "    \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::AutoScaling::LaunchConfiguration"
+    }
+  }
+}
