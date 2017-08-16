@@ -212,6 +212,12 @@
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
       "Type": "AWS::EC2::KeyPair::KeyName"
     },
+    "NodesourceSetupUri": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://rpm.nodesource.com/setup_8.x",
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "String"
+    },
     "NoPublicIp": {
       "AllowedValues": [
         "false",
@@ -482,27 +488,6 @@
         "ImageId": { "Ref": "AmiId" },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyPairName" },
-        "NetworkInterfaces": [
-          {
-            "AssociatePublicIpAddress": {
-              "Fn::If": [
-                "AssignPublicIp",
-                "true",
-                "false"
-              ]
-            },
-            "DeviceIndex": "0",
-            "GroupSet": { "Ref": "SecurityGroupIds" },
-            "PrivateIpAddress": {
-              "Fn::If": [
-                "AssignStaticPrivateIp",
-                { "Ref": "PrivateIp" },
-                { "Ref": "AWS::NoValue" }
-              ]
-            },
-            "SubnetId": { "Ref": "SubnetId" }
-          }
-        ],
         "Tags": [
           {
             "Key": "Name",
@@ -608,8 +593,9 @@
                           "'Could not add admin keys'\n",
                 "      \n",
                 "      # Install nodejs repo-def\n",
-                "      curl -sL https://rpm.nodesource.com/setup_8.x |",
-                       " bash -\n",
+                "      curl -sL ",
+                         { "Ref": "NodesourceSetupUri" },
+                         " | bash -\n",
                 "      \n",
                 "      # Install packages needed to fully-enable the agent\n",
                 "      yum --enablerepo=epel install -y @development anaconda",
