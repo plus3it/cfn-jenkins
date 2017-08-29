@@ -72,7 +72,7 @@
       ]
     }
   },
-  "Description": "This template deploys a Linux instance to host Atlassian's Jenkins application.",
+  "Description": "This template deploys a Linux instance to host the Jenkins slave-agent.",
   "Mappings": {},
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -120,6 +120,10 @@
       "Description": "URL the file containing the admin group's SSH public keys.",
       "Type": "String",
       "AllowedPattern": "^$|^http://.*$|^https://.*$"
+    },
+    "AgentAuthToken": {
+      "Description": "Authentication token-string used for JNLP config.",
+      "Type": "String"
     },
     "AmiId": {
       "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
@@ -206,6 +210,14 @@
       ],
       "Default": "t2.micro",
       "Description": "Amazon EC2 instance type",
+      "Type": "String"
+    },
+    "JenkinsAgentName": {
+      "Description": "Name assigned to the Jenkins agent node.",
+      "Type": "String"
+    },
+    "JenkinsMaster": {
+      "Description": "FQDN of Jenkins master node",
       "Type": "String"
     },
     "KeyPairName": {
@@ -429,6 +441,39 @@
                 "group": "root",
                 "mode": "000700",
                 "owner": "root"
+              },
+              "/etc/systemd/system/jenkins-agent.service": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[Unit]\n",
+                      "Description=Jenkins Agent Daemon\n",
+                      "\n",
+                      "[Service]\n",
+                      "ExecStart=/bin/java -jar ",
+                      { "Ref": "AppVolumeMountPath" },
+                      "/slave.jar -jnlpUrl https://",
+                      { "Ref": "JenkinsMaster" },
+                      "/computer/",
+                      { "Ref": "JenkinsAgentName" },
+                      "/slave-agent.jnlp -secret ",
+                      { "Ref": "AgentAuthToken" },
+                      " -workDir \"",
+                      { "Ref": "AppVolumeMountPath" },
+                      "\"\n",
+                      "User=jenkins\n",
+                      "Restart=always\n",
+                      "RestartSec=15\n",
+                      "\n",
+                      "[Install]\n",
+                      "WantedBy=multi-user.target\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
               }
             },
             "services": {
@@ -488,6 +533,24 @@
         "ImageId": { "Ref": "AmiId" },
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Ref": "KeyPairName" },
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": {
+              "Fn::If": [
+                "AssignPublicIp",
+                "true",
+                "false"
+              ]
+            },
+            "GroupSet": {
+              "Ref": "SecurityGroupIds"
+            },
+            "SubnetId": {
+              "Ref": "SubnetId"
+            }
+          }
+        ],
         "Tags": [
           {
             "Key": "Name",
@@ -592,15 +655,9 @@
                           "/.ssh/authorized_keys || error_exit ",
                           "'Could not add admin keys'\n",
                 "      \n",
-                "      # Install nodejs repo-def\n",
-                "      curl -sL ",
-                         { "Ref": "NodesourceSetupUri" },
-                         " | bash -\n",
-                "      \n",
-                "      # Install packages needed to fully-enable the agent\n",
-                "      yum --enablerepo=epel install -y @development anaconda",
-                       " ansible fpm2 groovy maven python-nose python-nose2",
-                       " ruby rubygems-devel nodejs\n",
+                "      # Add service account\n",
+                "      useradd jenkins && echo 'Success' || ",
+                       "err_exit 'Failed to create jenkins user'\n",
                 "      \n",
                 "      # Set perms on the jenkins dir\n",
                 "      if [[ -d ",
@@ -615,6 +672,32 @@
                           { "Ref": "AppVolumeMountPath" },
                           " \n",
                 "      fi\n",
+                "      \n",
+                "      # Take care of systemd configuration\n",
+                "      printf 'Enabling jenkins systemd service... '\n",
+                "      systemctl enable jenkins-agent && echo 'Success.'",
+                       " || err_exit 'Failed to enable jenkins service'\n",
+                "      \n",
+                "      # Install nodejs repo-def\n",
+                "      curl -sL ",
+                         { "Ref": "NodesourceSetupUri" },
+                         " | bash -\n",
+                "      \n",
+                "      # Install packages needed to fully-enable the agent\n",
+                "      yum --enablerepo=epel install -y @development anaconda",
+                       " ansible fpm2 groovy maven python-nose python-nose2",
+                       " ruby rubygems-devel nodejs\n",
+                "      \n",
+                "      # Grab the slave.jar\n",
+                "      su -s /bin/bash jenkins -c \"cd ",
+                       { "Ref": "AppVolumeMountPath" },
+                       " && curl -OskL https://",
+                       { "Ref": "JenkinsMaster" },
+                       "/jnlpJars/slave.jar\"\n",
+                "      \n",
+                "      # Start the agent software\n",
+                "      systemctl start jenkins-agent\n",
+                "      \n",
                 "      # Aaaaaand we're done...\n",
                 "      /opt/aws/bin/cfn-signal -e 0",
                        " --stack ",
