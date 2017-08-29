@@ -85,14 +85,17 @@
             "AmiId",
             "InstanceType",
             "InstanceRole",
-            "KeyPairName",
-            "NoPublicIp",
-            "NoReboot",
-            "NoUpdates",
             "Hostname",
             "Domainname",
+            "ProvisionUser",
+            "KeyPairName",
+            "AdminPubkeyURL",
             "SecurityGroupIds",
-            "AdminPubkeyURL"
+            "SubnetId",
+            "PrivateIp",
+            "NoPublicIp",
+            "NoReboot",
+            "NoUpdates"
           ]
         },
         {
@@ -104,6 +107,22 @@
             "AppVolumeMountPath",
             "AppVolumeSize",
             "AppVolumeType"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Service-setup"
+          },
+          "Parameters": [
+            "JenkinsMaster",
+            "JenkinsAgentName",
+            "AgentAuthToken",
+            "NpmSetupUri"
+          ]
+        },
+        {
+          "Parameters": [
+            
           ]
         }
       ]
@@ -151,10 +170,10 @@
     },
     "AppVolumeSize": {
       "ConstraintDescription": "Must be between 1GB and 16384GB.",
-      "Default": "1",
+      "Default": "20",
       "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "MaxValue": "16384",
-      "MinValue": "1",
+      "MinValue": "10",
       "Type": "Number"
     },
     "AppVolumeType": {
@@ -213,7 +232,7 @@
       "Type": "String"
     },
     "JenkinsAgentName": {
-      "Description": "Name assigned to the Jenkins agent node.",
+      "Description": "Name assigned to this Jenkins build-executor.",
       "Type": "String"
     },
     "JenkinsMaster": {
@@ -224,10 +243,10 @@
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
       "Type": "AWS::EC2::KeyPair::KeyName"
     },
-    "NodesourceSetupUri": {
+    "NpmSetupUri": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Default": "https://rpm.nodesource.com/setup_8.x",
-      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Description": "URL of NPM setup script.",
       "Type": "String"
     },
     "NoPublicIp": {
@@ -271,7 +290,7 @@
       "AllowedPattern": "[a-z0-9]{6,12}+",
       "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
       "Default": "jenkagent",
-      "Description": "Default login user account name.",
+      "Description": "Default login user account name (do not use \"jenkins\").",
       "Type": "String"
     },
     "PypiIndexUrl": {
@@ -585,8 +604,6 @@
                 ".",
                 { "Ref": "Domainname" },
                 "\n",
-                "manage_etc_hosts: true\n",
-                "\n",
                 {
                   "Fn::If": [
                     "CreateAppVolume",
@@ -680,7 +697,7 @@
                 "      \n",
                 "      # Install nodejs repo-def\n",
                 "      curl -sL ",
-                         { "Ref": "NodesourceSetupUri" },
+                         { "Ref": "NpmSetupUri" },
                          " | bash -\n",
                 "      \n",
                 "      # Install packages needed to fully-enable the agent\n",
