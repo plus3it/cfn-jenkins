@@ -217,7 +217,7 @@
     "NodesourceSetupUri": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Default": "https://rpm.nodesource.com/setup_8.x",
-      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Description": "URL of NPM setup script.",
       "Type": "String"
     },
     "PipRpm": {
