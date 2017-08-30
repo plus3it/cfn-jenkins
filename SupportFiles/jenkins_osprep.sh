@@ -72,7 +72,7 @@ for SVC in "${FWSVCS[@]}"
 do
    printf "Activating %s firewalld service..." "${SVC}"
    firewall-cmd --permanent --add-service="${SVC}" || \
-     err_exit 'Failed to activate ${SVC} firewalld service'
+     err_exit "Failed to activate ${SVC} firewalld service"
 done
 
 printf "Reloading firewalld configuration... "
