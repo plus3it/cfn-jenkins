@@ -1,9 +1,25 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "PrettyRole": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "RolePrefix" }, "" ] }
+      ]
+    }
+  },
   "Description": "This template sets up the IAM role needed by an Jenkins instance",
   "Parameters": {
     "JenkinsBucketArn": {
       "Description": "Arn of the S3 Bucket used to host Jenkins backups.",
+      "Type": "String"
+    },
+    "RolePrefix": {
+      "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
+      "Type": "String"
+    },
+    "ServiceTld": {
+      "Default": "amazonaws.com",
+      "Description": "TLD of the IAMable service-name.",
       "Type": "String"
     }
   },
@@ -51,15 +67,39 @@
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
-          "Statement": [{
-            "Action": "sts:AssumeRole",
-            "Effect": "Allow",
-            "Principal": {
-              "Service": "ec2.amazonaws.com"
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": {
+                  "Fn::Join": [
+                    ".",
+                    [
+                      "ec2",
+                      { "Ref": "ServiceTld" }
+                    ]
+                  ]
+                }
+              }
             }
-          }]
+          ]
         },
-        "Path": "/"
+        "Path": "/",
+        "RoleName": {
+          "Fn::If": [
+            "PrettyRole", {
+              "Fn::Join": [
+                "-",
+                [
+                  { "Ref": "RolePrefix" },
+                  { "Ref": "AWS::StackName" }
+                ]
+              ]
+            },
+            { "Ref": "AWS::NoValue" }
+          ]
+        }
       }
     },
     "InstanceProfile": {
