@@ -121,8 +121,15 @@
           ]
         },
         {
+          "Label": {
+            "default": "Miscellaneous"
+          },
           "Parameters": [
-            
+            "CfnEndpointUrl",
+            "EpelRepo",
+            "PyStache",
+            "PipRpm",
+            "PypiIndexUrl"
           ]
         }
       ]
@@ -468,6 +475,10 @@
                     [
                       "[Unit]\n",
                       "Description=Jenkins Agent Daemon\n",
+                      "Description=Jenkins Agent Daemon\n",
+                      "Wants=network-online.target\n",
+                      "Requires=network.target\n",
+                      "After=multi-user.target\n",
                       "\n",
                       "[Service]\n",
                       "ExecStart=/bin/java -jar ",
