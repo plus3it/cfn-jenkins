@@ -712,7 +712,7 @@
                 "      # Install packages needed to fully-enable the agent\n",
                 "      yum --enablerepo=epel install -y @development anaconda",
                        " ansible fpm2 groovy maven python-nose python-nose2",
-                       " ruby rubygems-devel nodejs\n",
+                       " ruby rubygems-devel ruby-devel nodejs\n",
                 "      \n",
                 "      # Grab the slave.jar\n",
                 "      su -s /bin/bash jenkins -c \"cd ",
