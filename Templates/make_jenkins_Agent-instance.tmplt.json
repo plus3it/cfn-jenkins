@@ -318,6 +318,11 @@
     "SubnetId": {
       "Description": "ID of the subnet to assign to the instance",
       "Type": "AWS::EC2::Subnet::Id"
+    },
+    "ZapAgentUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OWASP ZAP archive-file.",
+      "Type": "String"
     }
   },
   "Resources": {
@@ -502,6 +507,12 @@
                 "group": "root",
                 "mode": "000400",
                 "owner": "root"
+              },
+              "/tmp/ZAP_Linux.tar.gz": {
+                "source": { "Ref": "ZapAgentUrl" },
+                "group": "root",
+                "mode": "000444",
+                "owner": "root"
               }
             },
             "services": {
@@ -661,6 +672,14 @@
                        " ",
                        { "Ref": "PipRpm" },
                        " || err_exit 'Could not install Cfn dependencies.'\n",
+                "      \n",
+                "      # Update cfn-bootstrapper hash method\n",
+                "      PYVERS=$(python -c 'import sys;",
+                       " version=sys.version_info[:2];",
+                       " print(\"{0}.{1}\".format(*version))')\n",
+                "      sed -i '/^[ \\t][ \\t]*self._etag/s/etag$/None/'",
+                       " /usr/lib/python${PYVERS}/site-packages/cfnbootstrap",
+                        "/util.py\n",
                 "      \n",
                 "      # Initialize the Cfn subsystems\n",
                 "      /opt/aws/bin/cfn-init -s ",
