@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=
+# shellcheck disable=SC2163,SC2015
 #
 # Script to install and configure Jenkins and related components
 # onto Jenkins Linux agent-host

@@ -246,6 +246,10 @@
       "Description": "FQDN of Jenkins master node",
       "Type": "String"
     },
+    "JenkinsUserScriptUrl": {
+      "Description": "URL of Jenkins Agent setup script",
+      "Type": "String"
+    },
     "KeyPairName": {
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
       "Type": "AWS::EC2::KeyPair::KeyName"
@@ -508,6 +512,33 @@
                 "mode": "000400",
                 "owner": "root"
               },
+              "/etc/cfn/JenkinsAgent.envs": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "JENKINS_WORKDIR=",
+                      { "Ref": "AppVolumeMountPath" },
+                      "\n",
+                      "JENKINS_MASTER=",
+                      { "Ref": "JenkinsMaster" },
+                      "\n",
+                      "JENKINS_AUTH_TOKEN=",
+                      { "Ref": "AgentAuthToken" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000444",
+                "owner": "root"
+              },
+              "/tmp/user_script.sh": {
+                "source": { "Ref": "JenkinsUserScriptUrl" } ,
+                "group": "root",
+                "mode": "000755",
+                "owner": "root"
+              },
               "/tmp/ZAP_Linux.tar.gz": {
                 "source": { "Ref": "ZapAgentUrl" },
                 "group": "root",
@@ -733,12 +764,10 @@
                        " ansible fpm2 groovy maven python-nose python-nose2",
                        " ruby rubygems-devel ruby-devel nodejs\n",
                 "      \n",
-                "      # Grab the slave.jar\n",
-                "      su -s /bin/bash jenkins -c \"cd ",
-                       { "Ref": "AppVolumeMountPath" },
-                       " && curl -OskL https://",
-                       { "Ref": "JenkinsMaster" },
-                       "/jnlpJars/slave.jar\"\n",
+                "      # Run Jenkins-agent user setup script\n",
+                "      echo 'Running agent-setup script as jenkins-user'\n",
+                "      su -s /bin/bash - jenkins -c 'bash -c",
+                       " \"/tmp/user_script.sh\"'\n",
                 "      \n",
                 "      # Start the agent software\n",
                 "      systemctl start jenkins-agent\n",
