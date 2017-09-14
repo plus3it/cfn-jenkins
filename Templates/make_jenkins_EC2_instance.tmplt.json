@@ -1,6 +1,15 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "This template deploys a standalone Linux instance to host a Jenkins master node.",
+  "Outputs": {
+    "JenkinsInstanceId": {
+      "Description": "Instance ID",
+      "Export": {
+        "Name" : { "Fn::Sub": "${AWS::StackName}-InstanceId" }
+      },
+      "Value": { "Ref": "JenkinsMaster" }
+    }
+  },
   "Parameters": {
     "AdminPubkeyURL": {
       "Description": "URL the file containing the admin users' SSH public keys.",

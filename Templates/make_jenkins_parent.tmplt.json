@@ -69,6 +69,22 @@
       ]
     }
   },
+  "Outputs": {
+    "JenkinsInstanceId": {
+      "Description": "Instance ID of the Jenkins Master node's EC2 instance.",
+      "Export": {
+        "Name" : { "Fn::Sub": "${AWS::StackName}-Master-InstanceId" }
+      },
+      "Value": { "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsInstanceId" ] }
+    },
+    "JenkinsVpcId": {
+      "Description": "VPC-ID that Jenkins stack is deployed into.",
+      "Export": {
+        "Name" : { "Fn::Sub": "${AWS::StackName}-VpcId" }
+      },
+      "Value": { "Ref": "TargetVPC"}
+    }
+  },
   "Parameters": {
     "AdminPubkeyURL": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
