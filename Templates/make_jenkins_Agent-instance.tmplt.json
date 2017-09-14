@@ -138,6 +138,9 @@
   "Outputs": {
     "JenkinsInstanceId": {
       "Description": "Instance ID",
+      "Export": {
+        "Name" : { "Fn::Sub": "${AWS::StackName}-InstanceId" }
+      },
       "Value": { "Ref": "JenkinsAgent" }
     }
   },
