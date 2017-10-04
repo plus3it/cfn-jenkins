@@ -8,7 +8,25 @@
     }
   },
   "Description": "Template for creating a public ELB for users to connect through which to connect to the Jenkins service.",
-  "Metadata": {},
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Parameters": [
+            "JenkinsInstanceId",
+            "ProxyPrettyName",
+            "HaSubnets",
+            "SecurityGroupIds",
+            "JenkinsListenPort",
+            "JenkinsServicePort",
+            "JenkinsAgentPort",
+            "JenkinsListenerCert",
+            "JenkinsPassesSsh"
+          ]
+        }
+      ]
+    }
+  },
   "Outputs": {
     "JenkinsElbFqdn": {
       "Description": "Jenkins front-end's IP address",
@@ -25,21 +43,21 @@
       "MinValue": "1025",
       "Type": "Number"
     },
-    "JenkinsListnerCert": {
+    "JenkinsListenerCert": {
       "Default": "",
-      "Description": "Name of ACM-managed SSL Certificate to protect public listener.",
+      "Description": "Name/ID of the ACM-managed SSL Certificate to protect public listener.",
       "Type": "String"
     },
     "JenkinsListenPort": {
       "Default": "443",
-      "Description": "TCP Port number that the Jenkins ELB forwards from.",
+      "Description": "TCP Port number on which the Jenkins ELB listens for requests.",
       "MaxValue": "65535",
       "MinValue": "1",
       "Type": "Number"
     },
     "JenkinsServicePort": {
       "Default": "8080",
-      "Description": "TCP Port number that the Jenkins host forwards to.",
+      "Description": "TCP Port number that the Jenkins host listens to.",
       "MaxValue": "65535",
       "MinValue": "1025",
       "Type": "Number"
@@ -58,7 +76,7 @@
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
     "JenkinsInstanceId": {
-      "Description": "Name of stack containing instance this template should create a proxy for.",
+      "Description": "ID of the EC2-instance this template should create a proxy for.",
       "Type": "String"
     },
     "ProxyPrettyName": {
@@ -66,7 +84,7 @@
       "Type": "String"
     },
     "SecurityGroupIds": {
-      "Description": "List of security groups to apply to the instance(s)",
+      "Description": "List of security groups to apply to the ELB.",
       "Type": "List<AWS::EC2::SecurityGroup::Id>"
     }
   },
@@ -127,7 +145,7 @@
                       "",
                       [
                         "certificate/",
-                        { "Ref": "JenkinsListnerCert" }
+                        { "Ref": "JenkinsListenerCert" }
                       ]
                     ]
                   }

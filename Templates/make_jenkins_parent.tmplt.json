@@ -36,7 +36,11 @@
             "AppVolumeSize",
             "AppVolumeType",
             "NoUpdates",
-            "NoReboot"
+            "NoReboot",
+            "EpelRepo",
+            "PyStache",
+            "PipRpm",
+            "PipIndexFips"
           ]
         },
         {
@@ -55,16 +59,27 @@
         },
         {
           "Label": {
+            "default": "Proxy (ELB)"
+          },
+          "Parameters": [
+            "ProxyPrettyName",
+            "HaSubnets",
+            "JenkinsListenPort",
+            "JenkinsServicePort",
+            "JenkinsAgentPort",
+            "JenkinsListenerCert",
+            "JenkinsPassesSsh"
+          ]
+        },
+            "ServiceTld",
+        {
+          "Label": {
             "default": "Miscellaneous"
           },
           "Parameters": [
             "ServiceTld",
             "TargetVPC",
-            "RolePrefix",
-            "EpelRepo",
-            "PyStache",
-            "PipRpm",
-            "PipIndexFips"
+            "RolePrefix"
           ]
         }
       ]
@@ -236,7 +251,7 @@
       "MinValue": "1",
       "Type": "Number"
     },
-    "JenkinsListnerCert": {
+    "JenkinsListenerCert": {
       "Default": "",
       "Description": "Name of ACM-managed SSL Certificate to protect public listener.",
       "Type": "String"
@@ -336,10 +351,6 @@
       "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
       "Type": "String"
     },
-    "SecurityGroupIds": {
-      "Description": "List of security groups to apply to the instance(s)",
-      "Type": "List<AWS::EC2::SecurityGroup::Id>"
-    },
     "SecurityGroupTemplate": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the child-template for creating the Jenkins network security-groups.",
@@ -432,14 +443,16 @@
           },
           "JenkinsAgentPort": { "Ref": "JenkinsAgentPort" },
           "JenkinsListenPort": { "Ref": "JenkinsListenPort" },
-          "JenkinsListnerCert": { "Ref": "JenkinsListnerCert" },
+          "JenkinsListenerCert": { "Ref": "JenkinsListenerCert" },
           "JenkinsPassesSsh": { "Ref": "JenkinsPassesSsh" },
           "JenkinsServicePort": { "Ref": "JenkinsServicePort" },
           "ProxyPrettyName": { "Ref": "ProxyPrettyName" },
           "SecurityGroupIds": {
             "Fn::Join": [
               ",",
-              { "Ref": "SecurityGroupIds" }
+              [
+                { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] }
+              ]
             ]
           }
         },
