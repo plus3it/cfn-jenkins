@@ -1,5 +1,12 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "EnableSshPassthru": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "JenkinsPassesSsh" }, "" ] }
+      ]
+    }
+  },
   "Description": "Template for creating a public ELB for users to connect through which to connect to the Jenkins service.",
   "Metadata": {},
   "Outputs": {
@@ -36,6 +43,15 @@
       "MaxValue": "65535",
       "MinValue": "1025",
       "Type": "Number"
+    },
+    "JenkinsPassesSsh": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Whether to allow SSH passthrough to Jenkins master.",
+      "Type": "String"
     },
     "HaSubnets": {
       "Description": "Select three subnets - each from different Availability Zones.",
@@ -82,6 +98,18 @@
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": { "Ref": "JenkinsAgentPort" },
             "Protocol": "TCP"
+          },
+          {
+            "Fn::If": [
+              "EnableSshPassthru",
+              {
+                "InstancePort": "22",
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": "22",
+                "Protocol": "TCP"
+              },
+              { "Ref": "AWS::NoValue" }
+            ]
           },
           {
             "InstancePort": { "Ref": "JenkinsServicePort" },
