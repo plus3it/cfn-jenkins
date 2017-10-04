@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3 and IAM templates.",
+  "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3, IAM, EC2 and ELB templates.",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -12,7 +12,8 @@
             "SecurityGroupTemplate",
             "BucketTemplate",
             "IamRoleTemplate",
-            "Ec2Template"
+            "Ec2Template",
+            "ElbTemplate"
           ]
         },
         {
@@ -78,10 +79,7 @@
         }
       },
       "Value": {
-        "Fn::GetAtt": [
-          "Ec2Res",
-          "Outputs.JenkinsInstanceId"
-        ]
+        "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsInstanceId" ]
       }
     },
     "JenkinsVpcId": {
@@ -173,7 +171,12 @@
     },
     "Ec2Template": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
+      "Description": "URL to the child-template for creating the Jenkins master node.",
+      "Type": "String"
+    },
+    "ElbTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins ELB.",
       "Type": "String"
     },
     "EpelRepo": {
@@ -224,10 +227,6 @@
     "JenkinsBackupBucket": {
       "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
       "Description": "S3 Bucket to host backup files (if left blank, a value will be computed).",
-      "Type": "String"
-    },
-    "JenkinsInstanceId": {
-      "Description": "Name of stack containing instance this template should create a proxy for.",
       "Type": "String"
     },
     "JenkinsListenPort": {
@@ -416,6 +415,35 @@
           "SubnetIds": { "Ref": "SubnetId" }
         },
         "TemplateURL": { "Ref": "Ec2Template" }
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "ElbRes": {
+      "Properties": {
+        "Parameters": {
+          "HaSubnets": {
+            "Fn::Join": [
+              ",",
+              { "Ref": "HaSubnets" }
+            ]
+          },
+          "JenkinsInstanceId": {
+            "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsInstanceId" ]
+          },
+          "JenkinsAgentPort": { "Ref": "JenkinsAgentPort" },
+          "JenkinsListenPort": { "Ref": "JenkinsListenPort" },
+          "JenkinsListnerCert": { "Ref": "JenkinsListnerCert" },
+          "JenkinsPassesSsh": { "Ref": "JenkinsPassesSsh" },
+          "JenkinsServicePort": { "Ref": "JenkinsServicePort" },
+          "ProxyPrettyName": { "Ref": "ProxyPrettyName" },
+          "SecurityGroupIds": {
+            "Fn::Join": [
+              ",",
+              { "Ref": "SecurityGroupIds" }
+            ]
+          }
+        },
+        "TemplateURL": { "Ref": "ElbTemplate" }
       },
       "Type": "AWS::CloudFormation::Stack"
     },
