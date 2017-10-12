@@ -491,6 +491,7 @@
                       "Requires=network.target\n",
                       "\n",
                       "[Service]\n",
+                      "ExecStartPre=/bin/sleep 15\n",
                       "ExecStart=/bin/java -jar ",
                       { "Ref": "AppVolumeMountPath" },
                       "/slave.jar -jnlpUrl https://",
