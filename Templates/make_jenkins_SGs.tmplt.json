@@ -12,6 +12,12 @@
     }
   },
   "Parameters": {
+    "JenkinsAgentPort": {
+      "Description": "TCP Port number that the Jenkins agent-hosts connect through.",
+      "MaxValue": "65535",
+      "MinValue": "1025",
+      "Type": "Number"
+    },
     "TargetVPC": {
       "AllowedPattern": "^vpc-[0-9a-f]*$",
       "Description": "ID of the VPC to deploy networked components into.",
@@ -34,6 +40,12 @@
             "FromPort": "8080",
             "IpProtocol": "tcp",
             "ToPort": "8080"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": { "Ref": "JenkinsAgentPort" },
+            "IpProtocol": "tcp",
+            "ToPort": { "Ref": "JenkinsAgentPort" }
           }
         ],
         "Tags": [
