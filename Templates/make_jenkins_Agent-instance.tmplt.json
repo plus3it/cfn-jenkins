@@ -342,10 +342,22 @@
       },
       "Metadata": {
         "AWS::CloudFormation::Init": {
+          "admkey-install": {
+            "commands": {
+              "10-admkey-install": {
+                "command": "bash -xe /tmp/admkey.sh"
+              }
+            }
+          },
           "configSets": {
             "default": [
               "config",
-              "watchmaker-install"
+              "admkey-install",
+              "watchmaker-install",
+              "yum-addons",
+              "install-jenkins-agent",
+              "systemd-jenkins-agent",
+              "finalize"
             ]
           },
           "config": {
@@ -362,22 +374,6 @@
                       "region=",
                       { "Ref": "AWS::Region" },
                       "\n",
-                      {
-                        "Fn::If": [
-                          "AssignInstanceRole",
-                          {
-                            "Fn::Join": [
-                              "",
-                              [
-                                "role=",
-                                { "Ref": "InstanceRole" },
-                                "\n"
-                              ]
-                            ]
-                          },
-                          ""
-                        ]
-                      },
                       {
                         "Fn::If": [
                           "UseCfnUrl",
@@ -417,21 +413,6 @@
                       " --stack ",
                       { "Ref": "AWS::StackName" },
                       " --resource JenkinsAgent",
-                      {
-                        "Fn::If": [
-                          "AssignInstanceRole",
-                          {
-                            "Fn::Join": [
-                              "",
-                              [
-                                " --role ",
-                                { "Ref": "InstanceRole" }
-                              ]
-                            ]
-                          },
-                          ""
-                        ]
-                      },
                       {
                         "Fn::If": [
                           "UseCfnUrl",
@@ -480,6 +461,137 @@
                 "mode": "000700",
                 "owner": "root"
               },
+              "/etc/cfn/JenkinsAgent.envs": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "JENKINS_WORKDIR=",
+                      { "Ref": "AppVolumeMountPath" },
+                      "\n",
+                      "JENKINS_MASTER=",
+                      { "Ref": "JenkinsMaster" },
+                      "\n",
+                      "JENKINS_AUTH_TOKEN=",
+                      { "Ref": "AgentAuthToken" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000444",
+                "owner": "root"
+              },
+              "/tmp/adminkeys.pub": {
+                "source": { "Ref": "AdminPubkeyURL" },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              },
+              "/tmp/admkey.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PROVHOME=$(getent passwd ",
+                      { "Ref": "ProvisionUser" },
+                      " | awk -F\":\" '{print $6}')\n",
+                      "\n",
+                      "install -b -m 000600 -o ",
+                      { "Ref": "ProvisionUser" },
+                      " -g ",
+                      { "Ref": "ProvisionUser" },
+                      " /tmp/adminkeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              },
+              "/tmp/ZAP_Linux.tar.gz": {
+                "source": { "Ref": "ZapAgentUrl" },
+                "group": "root",
+                "mode": "000444",
+                "owner": "root"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
+                }
+              }
+            }
+          },
+          "finalize": {
+            "commands": {
+              "10-signal-success": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "/opt/aws/bin/cfn-signal -e 0",
+                      " --stack ",
+                      { "Ref": "AWS::StackName" },
+                      " --resource JenkinsAgent",
+                      {
+                        "Fn::If": [
+                          "UseCfnUrl",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --url ",
+                                { "Ref": "CfnEndpointUrl" }
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      " --region ",
+                      { "Ref": "AWS::Region" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "ignoreErrors": "true"
+              }
+            }
+          },
+          "install-jenkins-agent": {
+            "users" : {
+              "jenkins" : {
+                "homeDir" : "/var/jenkins"
+              }
+            },
+            "files": {
+              "/tmp/user_script.sh": {
+                "source": { "Ref": "JenkinsUserScriptUrl" } ,
+                "group": "root",
+                "mode": "000755",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-jenkins-home-perm": {
+                "command": "chown -R jenkins:jenkins /var/jenkins"
+              },
+              "2-agent-install": {
+                "command": "sudo -H -u jenkins bash -xe /tmp/user_script.sh"
+              } 
+            }
+          },
+          "systemd-jenkins-agent":{
+            "files": {
               "/etc/systemd/system/jenkins-agent.service": {
                 "content": {
                   "Fn::Join": [
@@ -515,51 +627,17 @@
                 "group": "root",
                 "mode": "000400",
                 "owner": "root"
-              },
-              "/etc/cfn/JenkinsAgent.envs": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "JENKINS_WORKDIR=",
-                      { "Ref": "AppVolumeMountPath" },
-                      "\n",
-                      "JENKINS_MASTER=",
-                      { "Ref": "JenkinsMaster" },
-                      "\n",
-                      "JENKINS_AUTH_TOKEN=",
-                      { "Ref": "AgentAuthToken" },
-                      "\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000444",
-                "owner": "root"
-              },
-              "/tmp/user_script.sh": {
-                "source": { "Ref": "JenkinsUserScriptUrl" } ,
-                "group": "root",
-                "mode": "000755",
-                "owner": "root"
-              },
-              "/tmp/ZAP_Linux.tar.gz": {
-                "source": { "Ref": "ZapAgentUrl" },
-                "group": "root",
-                "mode": "000444",
-                "owner": "root"
               }
             },
-            "services": {
-              "sysvinit": {
-                "cfn-hup": {
-                  "enabled": "true",
-                  "ensureRunning": "true",
-                  "files": [
-                    "/etc/cfn/cfn-hup.conf",
-                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
-                  ]
-                }
+            "commands": {
+              "1-systemd-reload": {
+                "command": "systemctl daemon-reload"
+              },
+              "2-systemd-agent-start": {
+                "command": "systemctl start jenkins-agent.service"
+              },
+              "3-systemd-agent-enable": {
+                "command": "systemctl enable jenkins-agent.service"
               }
             }
           },
@@ -567,6 +645,43 @@
             "commands": {
               "10-watchmaker-install": {
                 "command": "bash -xe /etc/cfn/scripts/watchmaker-install.sh"
+              }
+            }
+          },
+          "yum-addons": {
+            "commands": {
+              "1-yum-npm_repo": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "curl -sL ",
+                      { "Ref": "NpmSetupUri" },
+                      " | bash -\n"
+                    ]
+                  ]
+                }
+              },
+              "2-yum-packages": {
+                "command": {
+                  "Fn::Join": [
+                    " ",
+                    [
+                      "yum --enablerepo=epel install -y @development",
+                      "anaconda",
+                      "ansible",
+                      "fpm2",
+                      "groovy",
+                      "maven",
+                      "python-nose",
+                      "python-nose2",
+                      "ruby",
+                      "ubygems-devel",
+                      "ruby-devel",
+                      "nodejs\n"
+                    ]
+                  ]
+                }
               }
             }
           }
@@ -650,6 +765,8 @@
                 "    name: ",
                 { "Ref": "ProvisionUser" },
                 "\n",
+                "users:\n",
+                "  - default\n",
                 "\n",
                 "hostname: ",
                 { "Ref": "Hostname" },
@@ -717,73 +834,14 @@
                         "/util.py\n",
                 "      \n",
                 "      # Initialize the Cfn subsystems\n",
-                "      /opt/aws/bin/cfn-init -s ",
+                "      /opt/aws/bin/cfn-init -v -c default",
+                       " --stack ",
                        { "Ref": "AWS::StackName" },
-                       " -r JenkinsAgent ",
+                       " --resource JenkinsAgent ",
                        " --region ",
                        { "Ref": "AWS::Region" },
                        " && echo 'Successfully ran cfn-init'",
                        " || err_exit 'Failed to run cfn-init' > /dev/stderr\n",
-                "      \n",
-                "      # Install admin-groups keys to provisioning user\n",
-                "      curl -skL ",
-                          { "Ref" : "AdminPubkeyURL" },
-                          " -o /tmp/admin.keys || error_exit ",
-                          "'Could not download admin keys'\n",
-                "      cat /tmp/admin.keys >> /home/",
-                          { "Ref" : "ProvisionUser" },
-                          "/.ssh/authorized_keys || error_exit ",
-                          "'Could not add admin keys'\n",
-                "      \n",
-                "      # Add service account\n",
-                "      useradd jenkins && echo 'Success' || ",
-                       "err_exit 'Failed to create jenkins user'\n",
-                "      \n",
-                "      # Set perms on the jenkins dir\n",
-                "      if [[ -d ",
-                          { "Ref": "AppVolumeMountPath" },
-                          " ]]\n",
-                "      then\n",
-                "         chmod 1777 ",
-                          { "Ref": "AppVolumeMountPath" },
-                          " \n",
-                "      else\n",
-                "         install -d -m 001777 ",
-                          { "Ref": "AppVolumeMountPath" },
-                          " \n",
-                "      fi\n",
-                "      \n",
-                "      # Take care of systemd configuration\n",
-                "      printf 'Enabling jenkins systemd service... '\n",
-                "      systemctl enable jenkins-agent && echo 'Success.'",
-                       " || err_exit 'Failed to enable jenkins service'\n",
-                "      \n",
-                "      # Install nodejs repo-def\n",
-                "      curl -sL ",
-                         { "Ref": "NpmSetupUri" },
-                         " | bash -\n",
-                "      \n",
-                "      # Install packages needed to fully-enable the agent\n",
-                "      yum --enablerepo=epel install -y @development anaconda",
-                       " ansible fpm2 groovy maven python-nose python-nose2",
-                       " ruby rubygems-devel ruby-devel nodejs\n",
-                "      \n",
-                "      # Run Jenkins-agent user setup script\n",
-                "      echo 'Running agent-setup script as jenkins-user'\n",
-                "      su -s /bin/bash - jenkins -c 'bash -c",
-                       " \"/tmp/user_script.sh\"'\n",
-                "      \n",
-                "      # Start the agent software\n",
-                "      systemctl start jenkins-agent\n",
-                "      \n",
-                "      # Aaaaaand we're done...\n",
-                "      /opt/aws/bin/cfn-signal -e 0",
-                       " --stack ",
-                       { "Ref" : "AWS::StackName" },
-                       " --resource JenkinsAgent",
-                       " --region ",
-                       { "Ref" : "AWS::Region"},
-                       "\n",
                 "      \n"
               ]
             ]
