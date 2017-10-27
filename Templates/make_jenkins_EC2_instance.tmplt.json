@@ -415,9 +415,17 @@
             }
           },
           "app-install": {
+            "files": {
+              "/etc/cfn/scripts/osprep.sh": {
+                "source": { "Ref": "JenkinsAppinstallScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
             "commands": {
-              "dummy-signal": {
-                "command": "echo \"DUMMY ENTRY-POINT\""
+              "1-appinstall-script": {
+                "command": "bash -xe /etc/cfn/scripts/appinstall.sh"
               }
             }
           },
@@ -426,6 +434,7 @@
               "setup",
               "admkey-install",
               "watchmaker-install",
+              "osprep",
               "watchmaker-launch",
               {
                 "Fn::If": [
@@ -483,6 +492,37 @@
             "commands": {
               "10-install-updates": {
                 "command": "yum update -y"
+              }
+            }
+          },
+          "misc-rpms": {
+            "commands": {
+              "yum-packages": {
+                "command": {
+                  "Fn::Join": [
+                    " ",
+                    [
+                      "yum --enablerepo=epel install -y",
+                      "git",
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          },
+          "osprep": {
+            "files": {
+              "/etc/cfn/scripts/osprep.sh": {
+                "source": { "Ref": "JenkinsOsPrepScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-osprep-script": {
+                "command": "bash -xe /etc/cfn/scripts/osprep.sh"
               }
             }
           },
