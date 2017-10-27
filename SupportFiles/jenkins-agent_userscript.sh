@@ -23,7 +23,7 @@ function err_exit {
    local SCRIPTEXIT=${2:-1}
 
    # Our output channels
-   echo "${ERRSTR}" > /dev/stderr
+   # echo "${ERRSTR}" > /dev/stderr
    logger -t "${PROGNAME}" -p kern.crit "${ERRSTR}"
 
    # Need our exit to be an integer
