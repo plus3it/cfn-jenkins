@@ -477,6 +477,27 @@
                 "mode" : "000400",
                 "owner" : "root",
                 "group" : "root"
+              },
+              "/etc/yum.repos.d/jenkins.repo": {
+                "content" : {
+                  "Fn::Join" : [
+                    "",
+                    [
+                      "[jenkins]\n",
+                      "gpgkey = ",
+                      { "Ref" : "JenkinsRepoKeyURL" },
+                      "\n",
+                      "enabled = 1\n",
+                      "baseurl = ",
+                      { "Ref": "JenkinsRepoURL" },
+                      "\n",
+                      "name = Jenkins CI service-repository\n"
+                    ]
+                  ]
+                },
+                "mode" : "000444",
+                "owner" : "root",
+                "group" : "root"
               }
             },
             "services" : {
@@ -647,18 +668,6 @@
                      { "Ref" : "ServerHostname" },
                      ".",
                      { "Ref" : "DnsSuffix" },
-              "\n",
-              "manage_etc_hosts: true\n",
-              "\n",
-              "yum_repos:\n",
-              "  jenkins:\n",
-              "    name: Jenkins CI service-repository\n",
-              "    baseurl: ",
-                { "Ref" : "JenkinsRepoURL" },
-              "\n",
-              "    enabled: true\n",
-              "    gpgkey: ",
-                { "Ref" : "JenkinsRepoKeyURL" },
               "\n",
               "\n",
               "runcmd:\n",
