@@ -1,306 +1,58 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template deploys a standalone Linux instance to host a Jenkins master node.",
-  "Outputs": {
-    "JenkinsInstanceId": {
-      "Description": "Instance ID",
-      "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceId" }
-      },
-      "Value": { "Ref": "JenkinsMaster" }
-    }
-  },
-  "Parameters": {
-    "AdminPubkeyURL": {
-      "Description": "URL the file containing the admin users' SSH public keys.",
-      "Type": "String",
-      "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    },
-    "AmiId": {
-      "Description": "ID of the AMI to launch",
-      "Type": "String",
-      "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$"
-    },
-    "AmiDistro": {
-      "Description": "Linux distro of the AMI",
-      "Type": "String",
-      "AllowedValues": [
-        "CentOS",
-        "RedHat"
-      ],
-      "Default": "CentOS"
-    },
-    "AppVolumeDevice": {
-      "Description": "Device to mount an extra EBS volume. Leave blank to launch without an extra application volume",
-      "Type": "String",
-      "Default": "",
-      "AllowedValues": [
-        "",
-        "/dev/xvdf",
-        "/dev/xvdg",
-        "/dev/xvdh",
-        "/dev/xvdi",
-        "/dev/xvdj"
-      ]
-    },
-    "AppVolumeMountPath": {
-      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
-      "Type": "String",
-      "Default": "/var/lib/jenkins",
-      "AllowedPattern": "/.*"
-    },
-    "AppVolumeType": {
-      "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
-      "Type": "String",
-      "Default": "gp2",
-      "AllowedValues": [
-        "gp2",
-        "io1",
-        "sc1",
-        "st1",
-        "standard"
-      ]
-    },
-    "AppVolumeSize": {
-      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
-      "Type": "Number",
-      "Default": "1",
-      "MinValue": "1",
-      "MaxValue": "16384",
-      "ConstraintDescription": "Must be between 1GB and 16384GB."
-    },
-    "BackupBucket": {
-      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
-      "Description": "S3 Bucket to host backups of Jenkins config-data",
-      "Type": "String"
-    },
-    "BackupCronURL": {
-      "Description": "URL to the Jenkins backup cron-file",
-      "Type": "String",
-      "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    },
-    "BackupFolder": {
-      "AllowedPattern": "^[a-zA-Z]*[a-z0-9-]*[a-zA-Z]*$",
-      "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
-      "Type": "String"
-    },
-    "DnsSuffix": {
-      "Description": "Suffix for Jenkins' hostname and DNS record",
-      "Type": "String",
-      "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN."
-    },
-    "EpelRepo": {
-      "Description": "Name of network's EPEL repo.",
-      "Type": "String",
-      "Default": "epel",
-      "AllowedPattern": "^[a-z][a-z0-9-]*$",
-      "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label."
-    },
-    "KeyPairName": {
-      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-      "Type": "AWS::EC2::KeyPair::KeyName"
-    },
-    "InstanceType": {
-      "Description": "Amazon EC2 instance type",
-      "Type": "String",
-      "Default": "t2.micro",
-      "AllowedValues": [
-        "t2.micro",
-        "t2.small",
-        "t2.medium",
-        "t2.large",
-        "c4.large",
-        "c4.xlarge",
-        "m3.xlarge",
-        "m4.large",
-        "m4.xlarge",
-        "m4.2xlarge",
-        "r3.2xlarge"
-      ]
-    },
-    "InstanceRole": {
-      "Description": "IAM instance role to apply to the instance(s)",
-      "Type": "String",
-      "Default": ""
-    },
-    "JenkinsAppinstallScriptUrl": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL of Jenkins application-installer script.",
-      "Type": "String"
-    },
-    "JenkinsOsPrepScriptUrl": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL of OS-preparation script.",
-      "Type": "String"
-    },
-    "NoPublicIp": {
-      "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
-      "Type": "String",
-      "Default": "true",
-      "AllowedValues": [
-        "false",
-        "true"
-      ]
-    },
-    "NoReboot": {
-      "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": [
-        "false",
-        "true"
-      ]
-    },
-    "NoUpdates": {
-      "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, SystemPrep _always_ installs updates)",
-      "Type": "String",
-      "Default": "false",
-      "AllowedValues": [
-        "false",
-        "true"
-      ]
-    },
-    "PipIndexFips": {
-      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
-      "Type": "String",
-      "Default": "https://pypi.org/simple/",
-      "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    },
-    "PipRpm": {
-      "Description": "Name of preferred pip RPM.",
-      "Type": "String",
-      "Default": "python2-pip"
-    },
-    "ProvisionUser": {
-      "Description": "Default login user account name.",
-      "Type": "String",
-      "Default": "autojenk",
-      "AllowedPattern": "[a-z0-9]{6,12}+",
-      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters."
-    },
-    "PyStache": {
-      "Description": "Name of preferred pystache RPM.",
-      "Type": "String",
-      "Default": "pystache"
-    },
-    "SecurityGroupIds": {
-      "Description": "List of security groups to apply to the instance(s)",
-      "Type": "List<AWS::EC2::SecurityGroup::Id>"
-    },
-    "ServerHostname": {
-      "Description": "Suffix for Jenkins' hostname and DNS record",
-      "Type": "String",
-      "Default": "jenkins-master",
-      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN."
-    },
-    "SubnetIds": {
-      "Type": "AWS::EC2::Subnet::Id",
-      "Description": "Subnet to associate to the Instance"
-    },
-    "CfnEndpointUrl": {
-      "Description": "URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
-      "Type": "String",
-      "Default": "",
-      "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    },
-    "JenkinsRepoURL": {
-      "Description": "URL to the Jenkins yum-repository",
-      "Type": "String",
-      "Default": "http://pkg.jenkins.io/redhat",
-      "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    },
-    "JenkinsRepoKeyURL": {
-      "Description": "URL to the Jenkins yum-repository GPG key",
-      "Type": "String",
-      "Default": "https://jenkins-ci.org/redhat/jenkins-ci.org.key",
-      "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    }
-  },
   "Conditions": {
-    "CreateAppVolume": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AppVolumeDevice"
-            },
-            ""
-          ]
-        }
-      ]
-    },
-    "UseCfnUrl": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "CfnEndpointUrl"
-            },
-            ""
-          ]
-        }
-      ]
-    },
-    "InstallUpdates": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "NoUpdates"
-            },
-            "true"
-          ]
-        }
-      ]
-    },
-    "Reboot": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "NoReboot"
-            },
-            "true"
-          ]
-        }
-      ]
-    },
     "AssignInstanceRole": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "InstanceRole"
-            },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "InstanceRole" }, "" ] }
       ]
     },
     "AssignPublicIp": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "NoPublicIp"
-            },
-            "true"
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "NoPublicIp" }, "true" ] }
+      ]
+    },
+    "CreateAppVolume": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "" ] }
+      ]
+    },
+    "InstallUpdates": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
+      ]
+    },
+    "Reboot": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
+      ]
+    },
+    "UseCfnAppInstaller": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "JenkinsAppinstallScriptUrl" }, "" ] }
+      ]
+    },
+    "UseCfnUrl": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "CfnEndpointUrl" }, "" ] }
+      ]
+    },
+    "UseEnvironment": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
+      ]
+    },
+    "UseWamConfig": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerConfig" }, "" ] }
       ]
     }
   },
+  "Description": "This template deploys a standalone Linux instance to host a Jenkins master node.",
   "Mappings": {
     "Distro2RootDevice": {
-      "AmazonLinux": {
-        "DeviceName": "xvda"
-      },
-      "RedHat": {
-        "DeviceName": "sda1"
-      },
-      "CentOS": {
-        "DeviceName": "sda1"
-      }
+      "AmazonLinux": { "DeviceName": "xvda" },
+      "CentOS": { "DeviceName": "sda1" },
+      "RedHat": { "DeviceName": "sda1" }
     }
   },
   "Metadata": {
@@ -380,34 +132,262 @@
           "default": "Force New Instances"
         }
       }
+    }
+  },
+  "Outputs": {
+    "JenkinsInstanceId": {
+      "Description": "Instance ID",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceId" }
+      },
+      "Value": { "Ref": "JenkinsMaster" }
+    }
+  },
+  "Parameters": {
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL the file containing the admin users' SSH public keys.",
+      "Type": "String"
     },
-    "AWS::CloudFormation::Designer": {
-      "c49ece7d-56d3-47af-a63e-6e00ea2cb068": {
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "position": {
-          "x": 60,
-          "y": 90
-        },
-        "z": 1,
-        "embeds": []
-      }
+    "AmiDistro": {
+      "AllowedValues": [
+        "CentOS",
+        "RedHat"
+      ],
+      "Default": "CentOS",
+      "Description": "Linux distro of the AMI",
+      "Type": "String"
+    },
+    "AmiId": {
+      "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
+      "Description": "ID of the AMI to launch",
+      "Type": "String"
+    },
+    "AppVolumeDevice": {
+      "AllowedValues": [
+        "",
+        "/dev/xvdf",
+        "/dev/xvdg",
+        "/dev/xvdh",
+        "/dev/xvdi",
+        "/dev/xvdj"
+      ],
+      "Default": "",
+      "Description": "Device to mount an extra EBS volume. Leave blank to launch without an extra application volume",
+      "Type": "String"
+    },
+    "AppVolumeMountPath": {
+      "AllowedPattern": "/.*",
+      "Default": "/var/lib/jenkins",
+      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "AppVolumeSize": {
+      "ConstraintDescription": "Must be between 1GB and 16384GB.",
+      "Default": "1",
+      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "MaxValue": "16384",
+      "MinValue": "1",
+      "Type": "Number"
+    },
+    "AppVolumeType": {
+      "AllowedValues": [
+        "gp2",
+        "io1",
+        "sc1",
+        "st1",
+        "standard"
+      ],
+      "Default": "gp2",
+      "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "BackupBucket": {
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+      "Description": "S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
+    "BackupCronURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the Jenkins backup cron-file",
+      "Type": "String"
+    },
+    "BackupFolder": {
+      "AllowedPattern": "^[a-zA-Z]*[a-z0-9-]*[a-zA-Z]*$",
+      "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
+    "CfnEndpointUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "",
+      "Description": "URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
+      "Type": "String"
+    },
+    "DnsSuffix": {
+      "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
+      "Type": "String"
+    },
+    "EpelRepo": {
+      "AllowedPattern": "^[a-z][a-z0-9-]*$",
+      "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
+      "Default": "epel",
+      "Description": "Name of network's EPEL repo.",
+      "Type": "String"
+    },
+    "InstanceRole": {
+      "Default": "",
+      "Description": "IAM instance role to apply to the instance(s)",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "c4.large",
+        "c4.xlarge",
+        "m3.xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "r3.2xlarge"
+      ],
+      "Default": "t2.micro",
+      "Description": "Amazon EC2 instance type",
+      "Type": "String"
+    },
+    "JenkinsAppinstallScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of Jenkins application-installer script.",
+      "Type": "String"
+    },
+    "JenkinsOsPrepScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OS-preparation script.",
+      "Type": "String"
+    },
+    "JenkinsRepoKeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://jenkins-ci.org/redhat/jenkins-ci.org.key",
+      "Description": "URL to the Jenkins yum-repository GPG key",
+      "Type": "String"
+    },
+    "JenkinsRepoURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "http://pkg.jenkins.io/redhat",
+      "Description": "URL to the Jenkins yum-repository",
+      "Type": "String"
+    },
+    "KeyPairName": {
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "NoPublicIp": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "true",
+      "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
+      "Type": "String"
+    },
+    "NoReboot": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
+      "Type": "String"
+    },
+    "NoUpdates": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, SystemPrep _always_ installs updates)",
+      "Type": "String"
+    },
+    "PipIndexFips": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://pypi.org/simple/",
+      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
+      "Type": "String"
+    },
+    "PipRpm": {
+      "Default": "python2-pip",
+      "Description": "Name of preferred pip RPM.",
+      "Type": "String"
+    },
+    "ProvisionUser": {
+      "AllowedPattern": "[a-z0-9]{6,12}+",
+      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
+      "Default": "autojenk",
+      "Description": "Default login user account name.",
+      "Type": "String"
+    },
+    "PyStache": {
+      "Default": "pystache",
+      "Description": "Name of preferred pystache RPM.",
+      "Type": "String"
+    },
+    "SecurityGroupIds": {
+      "Description": "List of security groups to apply to the instance(s)",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "ServerHostname": {
+      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
+      "Default": "jenkins-master",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
+      "Type": "String"
+    },
+    "SubnetIds": {
+      "Description": "Subnet to associate to the Instance",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "WatchmakerConfig": {
+      "AllowedPattern": "^$|^http[s]?://.*$",
+      "Default": "",
+      "Description": "(Optional) URL to a Watchmaker config file",
+      "Type": "String"
+    },
+    "WatchmakerEnvironment": {
+      "AllowedValues": [
+        "",
+        "dev",
+        "test",
+        "prod"
+      ],
+      "Default": "",
+      "Description": "Environment in which the instance is being deployed",
+      "Type": "String"
     }
   },
   "Resources": {
     "JenkinsMaster": {
-      "Type": "AWS::EC2::Instance",
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Count": "1",
+          "Timeout": "PT30M"
+        }
+      },
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "admkey-install": {
+            "commands": {
+              "10-admkey-install": {
+                "command": "bash -xe /tmp/admkey.sh"
+              }
+            },
             "files": {
               "/tmp/adminkeys.pub": {
-                "source": { "Ref": "AdminPubkeyURL" },
                 "group": "root",
                 "mode": "000600",
-                "owner": "root"
+                "owner": "root",
+                "source": { "Ref": "AdminPubkeyURL" }
               },
               "/tmp/admkey.sh": {
                 "content": {
@@ -432,18 +412,72 @@
                 "mode": "000700",
                 "owner": "root"
               }
-            },
+            }
+          },
+          "app-install": {
             "commands": {
-              "10-admkey-install": {
-                "command": "bash -xe /tmp/admkey.sh"
+              "dummy-signal": {
+                "command": "echo \"DUMMY ENTRY-POINT\""
               }
             }
           },
           "configSets": {
             "launch": [
               "setup",
-              "admkey-install"
+              "admkey-install",
+              "watchmaker-install",
+              "watchmaker-launch",
+              {
+                "Fn::If": [
+                  "UseCfnAppInstaller",
+                  "app-install",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
+              "finalize",
+              {
+                "Fn::If": [
+                  "Reboot",
+                  "reboot",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              }
             ]
+          },
+          "finalize": {
+            "commands": {
+              "10-signal-success": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "/opt/aws/bin/cfn-signal -e 0",
+                      " --stack ",
+                      { "Ref": "AWS::StackName" },
+                      " --resource JenkinsMaster",
+                      {
+                        "Fn::If": [
+                          "UseCfnUrl",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --url ",
+                                { "Ref": "CfnEndpointUrl" }
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      " --region ",
+                      { "Ref": "AWS::Region" },
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            }
           },
           "install-updates": {
             "commands": {
@@ -454,119 +488,117 @@
           },
           "setup": {
             "files": {
-              "/etc/cfn/cfn-hup.conf": {
-                "content": {
-                  "Fn::Join": ["", [
-                    "[main]\n",
-                    "stack=", { "Ref": "AWS::StackId" }, "\n",
-                    "region=", { "Ref": "AWS::Region" }, "\n",
-                    {
-                      "Fn::If": [
-                        "AssignInstanceRole", {
-                          "Fn::Join": [ "", [
-                            "role=",
-                            { "Ref": "InstanceRole" },
-                            "\n"
-                          ]]
-                        },
-                        ""
-                      ]
-                    },
-                    {
-                      "Fn::If": [
-                        "AssignInstanceRole", {
-                          "Fn::Join": [ "", [
-                            "url=",
-                            { "Ref": "CfnEndpointUrl" },
-                            "\n"
-                          ]]
-                        },
-                        ""
-                      ]
-                    }
-                  ]]
-                },
-                "mode": "000400",
-                "owner": "root",
-                "group": "root"
-              },
               "/etc/cfn/Jenkins.envs": {
                 "content": {
                   "Fn::Join": [
                     "",
                     [
                       "JENKINS_HOME_PATH=",
-                        { "Ref": "AppVolumeMountPath" },
-                        "\n",
+                      { "Ref": "AppVolumeMountPath" },
+                      "\n",
                       "JENKINS_BACKUP_BUCKET=",
-                        { "Ref": "BackupBucket" },
-                        "\n",
+                      { "Ref": "BackupBucket" },
+                      "\n",
                       "JENKINS_BACKUP_FOLDER=",
-                        { "Ref": "BackupFolder" },
-                        "\n",
+                      { "Ref": "BackupFolder" },
+                      "\n",
                       "JENKINS_APPINSTALL_SCRIPT=",
-                        { "Ref": "JenkinsAppinstallScriptUrl" },
-                        "\n",
+                      { "Ref": "JenkinsAppinstallScriptUrl" },
+                      "\n",
                       "JENKINS_OSPREP_SCRIPT=",
-                        { "Ref": "JenkinsOsPrepScriptUrl" },
-                        "\n",
+                      { "Ref": "JenkinsOsPrepScriptUrl" },
+                      "\n",
                       "JENKINS_CFN_ENDPOINT=",
-                        { "Ref": "CfnEndpointUrl" },
-                        "\n",
+                      { "Ref": "CfnEndpointUrl" },
+                      "\n",
                       "JENKINS_YUM_URL=",
-                        { "Ref": "JenkinsRepoURL" },
-                        "\n",
+                      { "Ref": "JenkinsRepoURL" },
+                      "\n",
                       "JENKINS_YUM_URL=",
-                        { "Ref": "JenkinsRepoKeyURL" },
-                        "\n",
+                      { "Ref": "JenkinsRepoKeyURL" },
+                      "\n",
                       "JENKINS_EPEL_REPO=",
-                        { "Ref": "EpelRepo" },
-                        "\n"
+                      { "Ref": "EpelRepo" },
+                      "\n"
                     ]
                   ]
                 },
+                "group": "root",
                 "mode": "000400",
-                "owner": "root",
-                "group": "root"
+                "owner": "root"
+              },
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]\n",
+                      "stack=",
+                      { "Ref": "AWS::StackId" },
+                      "\n",
+                      "region=",
+                      { "Ref": "AWS::Region" },
+                      "\n",
+                      {
+                        "Fn::If": [
+                          "UseCfnUrl",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "url=",
+                                { "Ref": "CfnEndpointUrl" },
+                                "\n"
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      "interval=1",
+                      "\n",
+                      "verbose=true",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
               },
               "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
                 "content": {
-                  "Fn::Join": ["", [
-                    "[cfn-auto-reloader-hook]\n",
-                    "triggers=post.update\n",
-                    "path=Resources.JenkinsMaster.Metadata\n",
-                    "action=/opt/aws/bin/cfn-init -v -c update",
-                    " --stack ", { "Ref": "AWS::StackName" },
-                    " --resource JenkinsMaster",
-                    {
-                      "Fn::If": [
-                        "AssignInstanceRole",
-                        {
-                          "Fn::Join": [ "", [
-                            " --role ",
-                            { "Ref": "InstanceRole" }
-                          ]]
-                        },
-                        ""
-                      ]
-                    },
-                    {
-                      "Fn::If": [
-                        "UseCfnUrl",
-                        {
-                          "Fn::Join": [ "", [
-                            " --url ",
-                            { "Ref": "CfnEndpointUrl" }
-                          ]]
-                        },
-                        ""
-                      ]
-                    }
-                  ]]
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]\n",
+                      "triggers=post.update\n",
+                      "path=Resources.JenkinsMaster.Metadata\n",
+                      "action=/opt/aws/bin/cfn-init -v -c update",
+                      " --stack ",
+                      { "Ref": "AWS::StackName" },
+                      " --resource JenkinsMaster",
+                      {
+                        "Fn::If": [
+                          "UseCfnUrl",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --url ",
+                                { "Ref": "CfnEndpointUrl" }
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      }
+                    ]
+                  ]
                 },
+                "group": "root",
                 "mode": "000400",
-                "owner": "root",
-                "group": "root"
+                "owner": "root"
               },
               "/etc/yum.repos.d/jenkins.repo": {
                 "content": {
@@ -585,9 +617,9 @@
                     ]
                   ]
                 },
+                "group": "root",
                 "mode": "000444",
-                "owner": "root",
-                "group": "root"
+                "owner": "root"
               }
             },
             "services": {
@@ -602,48 +634,87 @@
                 }
               }
             }
+          },
+          "watchmaker-install": {
+            "files": {
+              "/etc/cfn/scripts/watchmaker-install.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PYPI_URL=",
+                      { "Ref": "PipIndexFips" },
+                      "\n",
+                      "pip install --index-url=\"$PYPI_URL\" wheel==0.29.0\n",
+                      "pip install",
+                      " --index-url=\"$PYPI_URL\"",
+                      " --upgrade pip setuptools boto3 watchmaker\n\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "10-watchmaker-install": {
+                "command": "bash -xe /etc/cfn/scripts/watchmaker-install.sh"
+              }
+            }
+          },
+          "watchmaker-launch": {
+            "commands": {
+              "10-watchmaker-launch": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "watchmaker --log-level debug",
+                      " --log-dir /var/log/watchmaker",
+                      " --no-reboot",
+                      {
+                        "Fn::If": [
+                          "UseWamConfig",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --config \"",
+                                { "Ref": "WatchmakerConfig" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseEnvironment",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --env \"",
+                                { "Ref": "WatchmakerEnvironment" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
           }
-        }
-      },
-      "CreationPolicy": {
-        "ResourceSignal": {
-          "Count": "1",
-          "Timeout": "PT30M"
         }
       },
       "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "InstanceType"
-        },
-        "IamInstanceProfile": {
-          "Fn::If": [
-            "AssignInstanceRole",
-            {
-              "Ref": "InstanceRole"
-            },
-            {
-              "Ref": "AWS::NoValue"
-            }
-          ]
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "AWS::StackName"
-                  }
-                ]
-              ]
-            }
-          }
-        ],
         "BlockDeviceMappings": [
           {
             "DeviceName": {
@@ -654,9 +725,7 @@
                   {
                     "Fn::FindInMap": [
                       "Distro2RootDevice",
-                      {
-                        "Ref": "AmiDistro"
-                      },
+                      { "Ref": "AmiDistro" },
                       "DeviceName"
                     ]
                   }
@@ -664,39 +733,37 @@
               ]
             },
             "Ebs": {
-              "VolumeType": "gp2",
-              "DeleteOnTermination": "true"
+              "DeleteOnTermination": "true",
+              "VolumeType": "gp2"
             }
           },
           {
             "Fn::If": [
               "CreateAppVolume",
               {
-                "DeviceName": {
-                  "Ref": "AppVolumeDevice"
-                },
+                "DeviceName": { "Ref": "AppVolumeDevice" },
                 "Ebs": {
-                  "VolumeSize": {
-                    "Ref": "AppVolumeSize"
-                  },
-                  "VolumeType": {
-                    "Ref": "AppVolumeType"
-                  },
-                  "DeleteOnTermination": "true"
+                  "DeleteOnTermination": "true",
+                  "VolumeSize": { "Ref": "AppVolumeSize" },
+                  "VolumeType": { "Ref": "AppVolumeType" }
                 }
               },
-              {
-                "Ref": "AWS::NoValue"
-              }
+              { "Ref": "AWS::NoValue" }
             ]
           }
         ],
-        "KeyName": {
-          "Ref": "KeyPairName"
+        "IamInstanceProfile": {
+          "Fn::If": [
+            "AssignInstanceRole",
+            { "Ref": "InstanceRole" },
+            { "Ref": "AWS::NoValue" }
+          ]
         },
+        "ImageId": { "Ref": "AmiId" },
+        "InstanceType": { "Ref": "InstanceType" },
+        "KeyName": { "Ref": "KeyPairName" },
         "NetworkInterfaces": [
           {
-            "DeviceIndex": "0",
             "AssociatePublicIpAddress": {
               "Fn::If": [
                 "AssignPublicIp",
@@ -704,120 +771,165 @@
                 "false"
               ]
             },
-            "GroupSet": {
-              "Ref": "SecurityGroupIds"
-            },
-            "SubnetId": {
-              "Ref": "SubnetIds"
+            "DeviceIndex": "0",
+            "GroupSet": { "Ref": "SecurityGroupIds" },
+            "SubnetId": { "Ref": "SubnetIds" }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  { "Ref": "AWS::StackName" }
+                ]
+              ]
             }
           }
         ],
         "UserData": {
           "Fn::Base64": {
-            "Fn::Join": [ "", [
-              "#cloud-config\n",
-              "\n",
-              "system_info:\n",
-              "  default_user:\n",
-              "    name: ",
-                { "Ref": "ProvisionUser" },
-              "\n",
-              {
-                "Fn::If":
-                [
-                  "CreateAppVolume",
-                  {
-                    "Fn::Join": [ "", [
-                      "\n",
-                      "bootcmd:\n",
-                      "  - cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
-                      { "Ref": "AppVolumeDevice" },
-                      "\n",
-                      "mounts:\n",
-                      "  - [ ",
-                        { "Ref": "AppVolumeDevice" }, ", ",
-                        { "Ref": "AppVolumeMountPath" },
-                      " ]\n"
-                    ]]
-                  },
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
-              "\n",
-              "hostname: ",
-                     { "Ref": "ServerHostname" },
-              "\n",
-              "fqdn: ",
-                     { "Ref": "ServerHostname" },
-                     ".",
-                     { "Ref": "DnsSuffix" },
-              "\n",
-              "\n",
-              "runcmd:\n",
-              "  - |\n",
-              "      # Export cert bundle ENVs\n",
-              "      export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
-              "      export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
-              "      \n",
-              "      \n",
-              "      # Helper function\n",
-              "      function error_exit {\n",
-              "         /opt/aws/bin/cfn-signal -e 1 --stack ",
-                           { "Ref": "AWS::StackName" },
-                           " --resource JenkinsMaster\n",
-              "         exit 1\n",
-              "      }\n",
-              "      \n",
-              "      # Install missing RPMs\n",
-              "      yum --enablerepo=",
-                        { "Ref": "EpelRepo" },
-                        " install -y ",
-                        { "Ref": "PyStache" },
-                        " ",
-                        { "Ref": "PipRpm" },
-                        "|| error_exit 'Could not change install dependent RPMs.'\n",
-              "      \n",
-              "      # Do pip-stuff\n",
-              "      pip install -i ",
-                        { "Ref": "PipIndexFips" },
-                        " --upgrade pip\n",
-              "      \n",
-              "      # Initialize the Cfn subsystems\n",
-              "      /opt/aws/bin/cfn-init -c -v launch ",
-                     " --stack ",
-                     { "Ref": "AWS::StackName" },
-                     " --resource JenkinsMaster ",
-                     " --region ",
-                     { "Ref": "AWS::Region" },
-                     " && echo 'Successfully ran cfn-init'",
-                     " || error_exit 'Failed to run cfn-init' > /dev/stderr\n",
-              "      \n",
-              "      # Prep the OS for Jenkins install\n",
-              "      printf 'Grabbing and running the Jenkins os-prepper... '\n",
-              "      curl -skL ",
-                       { "Ref": "JenkinsOsPrepScriptUrl" },
-                     " | tee /root/osprep.sh | bash && echo || err_exit",
-                     " 'System preparation was not successful.'\n",
-              "      \n",
-              "      # Call the install-helper script\n",
-              "      printf 'Grabbing and running app-installer... '\n",
-              "      curl -skL ",
-                       { "Ref": "JenkinsAppinstallScriptUrl" },
-                     " | tee /root/appinstall.sh | bash && echo || err_exit",
-                     " 'Jenkins application-install was not successful.'\n",
-              "      \n",
-              "      # Signal Cfn that we're good\n",
-              "      /opt/aws/bin/cfn-signal -e 0 --stack ",
-                        { "Ref": "AWS::StackName" },
-                        " --resource JenkinsMaster --url ",
-                        { "Ref": "CfnEndpointUrl" },
-                        "\n",
-              ""
+            "Fn::Join": [
+              "",
+              [
+                "#cloud-config\n",
+                "\n",
+                "system_info:\n",
+                "  default_user:\n",
+                "    name: ",
+                     { "Ref": "ProvisionUser" },
+                     "\n",
+                {
+                  "Fn::If": [
+                    "CreateAppVolume",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "\n",
+                          "bootcmd:\n",
+                          "  - cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
+                          { "Ref": "AppVolumeDevice" },
+                          "\n",
+                          "mounts:\n",
+                          "  - [ ",
+                          { "Ref": "AppVolumeDevice" },
+                          ", ",
+                          { "Ref": "AppVolumeMountPath" },
+                          " ]\n"
+                        ]
+                      ]
+                    },
+                    { "Ref": "AWS::NoValue" }
+                  ]
+                },
+                "\n",
+                "hostname: ",
+                { "Ref": "ServerHostname" },
+                "\n",
+                "fqdn: ",
+                { "Ref": "ServerHostname" },
+                ".",
+                { "Ref": "DnsSuffix" },
+                "\n",
+                "\n",
+                "runcmd:\n",
+                "  - |\n",
+                "      # Export cert bundle ENVs\n",
+                "      export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
+                "      export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
+                "      \n",
+                "      # Helper function\n",
+                "      function error_exit {\n",
+                "         /opt/aws/bin/cfn-signal -e 1 --stack ",
+                          { "Ref": "AWS::StackName" },
+                          " --resource JenkinsMaster\n",
+                "         exit 1\n",
+                "      }\n",
+                "      \n",
+                "      # Install missing RPMs\n",
+                "      yum --enablerepo=",
+                       { "Ref": "EpelRepo" },
+                       " install -y ",
+                       { "Ref": "PyStache" },
+                       " ",
+                       { "Ref": "PipRpm" },
+                       " || error_exit 'Could not change install dependent",
+                       " RPMs.'\n",
+                "      \n",
+                "      # Upgrade pip and setuptools\n",
+                "      PYPI_URL=",
+                       { "Ref": "PipIndexFips" },
+                       "\n",
+                "      pip install --index-url=\"$PYPI_URL\"",
+                       " --upgrade pip setuptools\n\n",
+                "      # Update cfn-bootstrapper hash method\n",
+                "      printf 'Updating CFn hash-check method... '\n",
+                "      PYVERS=$(python -c 'import sys;",
+                       " version=sys.version_info[:2];",
+                       " print(\"{0}.{1}\".format(*version))')\n",
+                "      sed -i '/^[ \\t][ \\t]*self._etag/s/etag$/None/'",
+                       " /usr/lib/python${PYVERS}/site-packages/cfnbootstrap",
+                       "/util.py && echo 'Success' || ",
+                       "err_exit 'Failed updating CFn hash-method'\n",
+                "      \n",
+                "      # Initialize the CFn subsystems\n",
+                "      /opt/aws/bin/cfn-init -v -c launch",
+                       " --stack ",
+                       { "Ref": "AWS::StackName" },
+                       " --resource JenkinsMaster",
+                       {
+                         "Fn::If": [
+                           "UseCfnUrl",
+                           {
+                             "Fn::Join": [
+                               "",
+                               [
+                                 " --url ",
+                                 { "Ref": "CfnEndpointUrl" }
+                               ]
+                             ]
+                           },
+                           ""
+                         ]
+                       },
+                       " --region ",
+                       { "Ref": "AWS::Region" },
+                       " ||",
+                       " ( echo 'ERROR: cfn-init failed! Aborting!';",
+                       " /opt/aws/bin/cfn-signal -e 1",
+                       "  --stack ",
+                       { "Ref": "AWS::StackName" },
+                       "  --resource JenkinsMaster",
+                       {
+                         "Fn::If": [
+                           "UseCfnUrl",
+                           {
+                             "Fn::Join": [
+                               "",
+                               [
+                                 " --url ",
+                                 { "Ref": "CfnEndpointUrl" }
+                               ]
+                             ]
+                           },
+                           ""
+                         ]
+                       },
+                       "  --region ",
+                       { "Ref": "AWS::Region" },
+                       ";",
+                       " exit 1",
+                       " )\n\n",
+                ""
               ]
             ]
           }
         }
-      }
+      },
+      "Type": "AWS::EC2::Instance"
     }
   }
 }
