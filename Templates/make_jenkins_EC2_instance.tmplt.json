@@ -5,7 +5,7 @@
     "JenkinsInstanceId": {
       "Description": "Instance ID",
       "Export": {
-        "Name" : { "Fn::Sub": "${AWS::StackName}-InstanceId" }
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceId" }
       },
       "Value": { "Ref": "JenkinsMaster" }
     }
@@ -84,13 +84,13 @@
       "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
       "Type": "String"
     },
-    "DnsSuffix" : {
-      "Description" : "Suffix for Jenkins' hostname and DNS record",
+    "DnsSuffix": {
+      "Description": "Suffix for Jenkins' hostname and DNS record",
       "Type": "String",
       "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN."
     },
     "EpelRepo": {
-      "Description" : "Name of network's EPEL repo.",
+      "Description": "Name of network's EPEL repo.",
       "Type": "String",
       "Default": "epel",
       "AllowedPattern": "^[a-z][a-z0-9-]*$",
@@ -161,13 +161,13 @@
       ]
     },
     "PipIndexFips": {
-      "Description" : "URL of pip index  that is compatible with FIPS 140-2 requirements.",
+      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
       "Type": "String",
       "Default": "https://pypi.org/simple/",
       "AllowedPattern": "^$|^http://.*$|^https://.*$"
     },
     "PipRpm": {
-      "Description" : "Name of preferred pip RPM.",
+      "Description": "Name of preferred pip RPM.",
       "Type": "String",
       "Default": "python2-pip"
     },
@@ -179,7 +179,7 @@
       "ConstraintDescription": "Alphanumeric string between 6 and 12 characters."
     },
     "PyStache": {
-      "Description" : "Name of preferred pystache RPM.",
+      "Description": "Name of preferred pystache RPM.",
       "Type": "String",
       "Default": "pystache"
     },
@@ -187,8 +187,8 @@
       "Description": "List of security groups to apply to the instance(s)",
       "Type": "List<AWS::EC2::SecurityGroup::Id>"
     },
-    "ServerHostname" : {
-      "Description" : "Suffix for Jenkins' hostname and DNS record",
+    "ServerHostname": {
+      "Description": "Suffix for Jenkins' hostname and DNS record",
       "Type": "String",
       "Default": "jenkins-master",
       "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN."
@@ -399,22 +399,73 @@
   "Resources": {
     "JenkinsMaster": {
       "Type": "AWS::EC2::Instance",
-      "Metadata" : {
-        "AWS::CloudFormation::Init" : {
-          "config" : {
-            "files" : {
-              "/etc/cfn/cfn-hup.conf" : {
-                "content" : {
-                  "Fn::Join" : ["", [
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "admkey-install": {
+            "files": {
+              "/tmp/adminkeys.pub": {
+                "source": { "Ref": "AdminPubkeyURL" },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              },
+              "/tmp/admkey.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PROVHOME=$(getent passwd ",
+                      { "Ref": "ProvisionUser" },
+                      " | awk -F\":\" '{print $6}')\n",
+                      "\n",
+                      "install -b -m 000600 -o ",
+                      { "Ref": "ProvisionUser" },
+                      " -g ",
+                      { "Ref": "ProvisionUser" },
+                      " /tmp/adminkeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "10-admkey-install": {
+                "command": "bash -xe /tmp/admkey.sh"
+              }
+            }
+          },
+          "configSets": {
+            "launch": [
+              "setup",
+              "admkey-install"
+            ]
+          },
+          "install-updates": {
+            "commands": {
+              "10-install-updates": {
+                "command": "yum update -y"
+              }
+            }
+          },
+          "setup": {
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": ["", [
                     "[main]\n",
-                    "stack=", { "Ref" : "AWS::StackId" }, "\n",
-                    "region=", { "Ref" : "AWS::Region" }, "\n",
+                    "stack=", { "Ref": "AWS::StackId" }, "\n",
+                    "region=", { "Ref": "AWS::Region" }, "\n",
                     {
-                      "Fn::If" : [
+                      "Fn::If": [
                         "AssignInstanceRole", {
-                          "Fn::Join" : [ "", [
+                          "Fn::Join": [ "", [
                             "role=",
-                            { "Ref" : "InstanceRole" },
+                            { "Ref": "InstanceRole" },
                             "\n"
                           ]]
                         },
@@ -422,11 +473,11 @@
                       ]
                     },
                     {
-                      "Fn::If" : [
+                      "Fn::If": [
                         "AssignInstanceRole", {
-                          "Fn::Join" : [ "", [
+                          "Fn::Join": [ "", [
                             "url=",
-                            { "Ref" : "CfnEndpointUrl" },
+                            { "Ref": "CfnEndpointUrl" },
                             "\n"
                           ]]
                         },
@@ -435,13 +486,13 @@
                     }
                   ]]
                 },
-                "mode" : "000400",
-                "owner" : "root",
-                "group" : "root"
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
               },
               "/etc/cfn/Jenkins.envs": {
-                "content" : {
-                  "Fn::Join" : [
+                "content": {
+                  "Fn::Join": [
                     "",
                     [
                       "JENKINS_HOME_PATH=",
@@ -474,38 +525,38 @@
                     ]
                   ]
                 },
-                "mode" : "000400",
-                "owner" : "root",
-                "group" : "root"
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
               },
-              "/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
-                "content" : {
-                  "Fn::Join" : ["", [
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Join": ["", [
                     "[cfn-auto-reloader-hook]\n",
                     "triggers=post.update\n",
                     "path=Resources.JenkinsMaster.Metadata\n",
                     "action=/opt/aws/bin/cfn-init -v -c update",
-                    " --stack ", { "Ref" : "AWS::StackName" },
+                    " --stack ", { "Ref": "AWS::StackName" },
                     " --resource JenkinsMaster",
                     {
-                      "Fn::If" : [
+                      "Fn::If": [
                         "AssignInstanceRole",
                         {
-                          "Fn::Join" : [ "", [
+                          "Fn::Join": [ "", [
                             " --role ",
-                            { "Ref" : "InstanceRole" }
+                            { "Ref": "InstanceRole" }
                           ]]
                         },
                         ""
                       ]
                     },
                     {
-                      "Fn::If" : [
+                      "Fn::If": [
                         "UseCfnUrl",
                         {
-                          "Fn::Join" : [ "", [
+                          "Fn::Join": [ "", [
                             " --url ",
-                            { "Ref" : "CfnEndpointUrl" }
+                            { "Ref": "CfnEndpointUrl" }
                           ]]
                         },
                         ""
@@ -513,18 +564,18 @@
                     }
                   ]]
                 },
-                "mode" : "000400",
-                "owner" : "root",
-                "group" : "root"
+                "mode": "000400",
+                "owner": "root",
+                "group": "root"
               },
               "/etc/yum.repos.d/jenkins.repo": {
-                "content" : {
-                  "Fn::Join" : [
+                "content": {
+                  "Fn::Join": [
                     "",
                     [
                       "[jenkins]\n",
                       "gpgkey = ",
-                      { "Ref" : "JenkinsRepoKeyURL" },
+                      { "Ref": "JenkinsRepoKeyURL" },
                       "\n",
                       "enabled = 1\n",
                       "baseurl = ",
@@ -534,28 +585,21 @@
                     ]
                   ]
                 },
-                "mode" : "000444",
-                "owner" : "root",
-                "group" : "root"
+                "mode": "000444",
+                "owner": "root",
+                "group": "root"
               }
             },
-            "services" : {
-              "sysvinit" : {
-                "cfn-hup" : {
-                  "enabled" : "true",
-                  "ensureRunning" : "true",
-                  "files" : [
+            "services": {
+              "sysvinit": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
                     "/etc/cfn/cfn-hup.conf",
                     "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
                   ]
                 }
-              }
-            }
-          },
-          "install-updates" : {
-            "commands" : {
-              "10-install-updates" : {
-                "command" : "yum update -y"
               }
             }
           }
@@ -669,44 +713,44 @@
           }
         ],
         "UserData": {
-          "Fn::Base64" : {
-            "Fn::Join" : [ "", [
+          "Fn::Base64": {
+            "Fn::Join": [ "", [
               "#cloud-config\n",
               "\n",
               "system_info:\n",
               "  default_user:\n",
               "    name: ",
-                { "Ref" : "ProvisionUser" },
+                { "Ref": "ProvisionUser" },
               "\n",
               {
-                "Fn::If" :
+                "Fn::If":
                 [
                   "CreateAppVolume",
                   {
-                    "Fn::Join" : [ "", [
+                    "Fn::Join": [ "", [
                       "\n",
                       "bootcmd:\n",
                       "  - cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
-                      { "Ref" : "AppVolumeDevice" },
+                      { "Ref": "AppVolumeDevice" },
                       "\n",
                       "mounts:\n",
                       "  - [ ",
-                        { "Ref" : "AppVolumeDevice" }, ", ",
-                        { "Ref" : "AppVolumeMountPath" },
+                        { "Ref": "AppVolumeDevice" }, ", ",
+                        { "Ref": "AppVolumeMountPath" },
                       " ]\n"
                     ]]
                   },
-                  { "Ref" : "AWS::NoValue" }
+                  { "Ref": "AWS::NoValue" }
                 ]
               },
               "\n",
               "hostname: ",
-                     { "Ref" : "ServerHostname" },
+                     { "Ref": "ServerHostname" },
               "\n",
               "fqdn: ",
-                     { "Ref" : "ServerHostname" },
+                     { "Ref": "ServerHostname" },
                      ".",
-                     { "Ref" : "DnsSuffix" },
+                     { "Ref": "DnsSuffix" },
               "\n",
               "\n",
               "runcmd:\n",
@@ -719,40 +763,34 @@
               "      # Helper function\n",
               "      function error_exit {\n",
               "         /opt/aws/bin/cfn-signal -e 1 --stack ",
-                           { "Ref" : "AWS::StackName" },
+                           { "Ref": "AWS::StackName" },
                            " --resource JenkinsMaster\n",
               "         exit 1\n",
               "      }\n",
               "      \n",
               "      # Install missing RPMs\n",
               "      yum --enablerepo=",
-                        { "Ref" : "EpelRepo" },
+                        { "Ref": "EpelRepo" },
                         " install -y ",
-                        { "Ref" : "PyStache" },
+                        { "Ref": "PyStache" },
                         " ",
-                        { "Ref" : "PipRpm" },
+                        { "Ref": "PipRpm" },
                         "|| error_exit 'Could not change install dependent RPMs.'\n",
-              "      \n",
-              "      # Initialize the Cfn subsystems\n",
-              "      /opt/aws/bin/cfn-init -s ",
-                        { "Ref" : "AWS::StackName" },
-                                 " -r JenkinsMaster ",
-                      " --region ",
-                         { "Ref" : "AWS::Region" },
-                         " && echo 'Successfully ran cfn-init'",
-                         " || error_exit 'Failed to run cfn-init' > /dev/stderr\n",
-              "      \n",
-              "      curl -skL ",
-                        { "Ref" : "AdminPubkeyURL" },
-                        " -o /tmp/admin.keys || error_exit 'Could not download admin keys'\n",
-              "      cat /tmp/admin.keys >> /home/",
-                        { "Ref" : "ProvisionUser" },
-                        "/.ssh/authorized_keys || error_exit 'Could not add admin keys'\n",
               "      \n",
               "      # Do pip-stuff\n",
               "      pip install -i ",
                         { "Ref": "PipIndexFips" },
                         " --upgrade pip\n",
+              "      \n",
+              "      # Initialize the Cfn subsystems\n",
+              "      /opt/aws/bin/cfn-init -c -v launch ",
+                     " --stack ",
+                     { "Ref": "AWS::StackName" },
+                     " --resource JenkinsMaster ",
+                     " --region ",
+                     { "Ref": "AWS::Region" },
+                     " && echo 'Successfully ran cfn-init'",
+                     " || error_exit 'Failed to run cfn-init' > /dev/stderr\n",
               "      \n",
               "      # Prep the OS for Jenkins install\n",
               "      printf 'Grabbing and running the Jenkins os-prepper... '\n",
@@ -770,9 +808,9 @@
               "      \n",
               "      # Signal Cfn that we're good\n",
               "      /opt/aws/bin/cfn-signal -e 0 --stack ",
-                        { "Ref" : "AWS::StackName" },
+                        { "Ref": "AWS::StackName" },
                         " --resource JenkinsMaster --url ",
-                        { "Ref" : "CfnEndpointUrl" },
+                        { "Ref": "CfnEndpointUrl" },
                         "\n",
               ""
               ]
