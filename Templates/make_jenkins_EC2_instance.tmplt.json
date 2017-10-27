@@ -416,7 +416,7 @@
           },
           "app-install": {
             "files": {
-              "/etc/cfn/scripts/osprep.sh": {
+              "/etc/cfn/scripts/appinstall.sh": {
                 "source": { "Ref": "JenkinsAppinstallScriptUrl" },
                 "group": "root",
                 "mode": "000700",
