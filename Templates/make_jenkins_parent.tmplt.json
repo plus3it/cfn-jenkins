@@ -487,6 +487,7 @@
     "SgRes": {
       "Properties": {
         "Parameters": {
+          "JenkinsAgentPort": { "Ref": "JenkinsAgentPort" },
           "TargetVPC": { "Ref": "TargetVPC" }
         },
         "TemplateURL": { "Ref": "SecurityGroupTemplate" },
