@@ -6,6 +6,12 @@
 #################################################################
 # shellcheck disable=SC2086
 PROGNAME="$(basename ${0})"
+while read -r JNKENV
+# Read args from envs file
+do
+   # shellcheck disable=SC2163
+   export "${JNKENV}"
+done < /etc/cfn/Jenkins.envs
 SELMODE="$(awk -F= '/^SELINUX=/{print $2}' /etc/selinux/config)"
 JENKDATADIR="${JENKINS_HOME_PATH:-UNDEF}"
 JENKBKUPBKT="${JENKINS_BACKUP_BUCKET:-UNDEF}"
@@ -36,8 +42,13 @@ function err_exit {
 yum install -y jenkins || err_exit 'Jenkins install failed'
      
 # Restore JENKINS_HOME content (if available)
-echo "Attempting to restore JENKINS_HOME from S3... "
-su -s /bin/bash jenkins -c "/usr/bin/aws s3 sync --quiet ${JENKHOMEURL}/sync/JENKINS_HOME/ ${JENKDATADIR}"
+if [[ $(aws s3 ls ${JENKHOMEURL} > /dev/null 2>&1 )$? -gt 0 ]]
+then
+   printf 'Cannot find a recovery-directory in %s\n' "${JENKHOMEURL}"
+else
+   echo "Attempting to restore JENKINS_HOME from S3... "
+   sudo -H -u jenkins /usr/bin/aws s3 sync --quiet "${JENKHOMEURL}/sync/JENKINS_HOME/" "${JENKDATADIR}" || true
+fi
 
 if [[ -f ${JENKDATADIR}/config.xml ]]
 then
@@ -49,21 +60,9 @@ else
 fi
      
 # Start Jenkins
+echo "Starting and enabling Jenkins service... "
 systemctl enable jenkins
 systemctl start jenkins
-     
-# Install Jenkins backup cron-job
-(
- crontab -l 2> /dev/null ;
- echo "# Daily backup of JENKINS_HOME to S3" ;
- printf "0 23 * * * su -s /bin/bash jenkins -c " ;
- printf "\"/usr/bin/aws s3 sync --delete --quiet ${JENKDATADIR} ${JENKHOMEURL}" ;
- echo "/daily/\$(date '+%A')/\"" ;
- echo "# Sync JENKINS_HOME to S3 for re-deployments" ;
- printf "*/20 * * * * su -s /bin/bash jenkins -c " ;
- printf "\"/usr/bin/aws s3 sync --delete --quiet ${JENKDATADIR} ${JENKHOMEURL}" ;
- echo "/sync/JENKINS_HOME/\"";
-) | crontab -
 
 # Re-enable SELinux
 printf "Reverting SELinux enforcing-mode... "
