@@ -421,11 +421,39 @@
                 "group": "root",
                 "mode": "000700",
                 "owner": "root"
+              },
+              "/tmp/root.cron": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "# Daily backup of JENKINS_HOME to S3\n",
+                      "0 23 * * * sudo -H -u jenkins /usr/bin/aws s3 ",
+                      "sync --delete --quiet /var/lib/jenkins s3://",
+                      { "Ref": "BackupBucket" },
+                      "/Backups/daily/$(date '+%A')/\n",
+                      "# Sync JENKINS_HOME to S3 for re-deployments\n",
+                      "*/20 * * * * sudo -H -u jenkins /usr/bin/aws s3 ",
+                      "sync --delete --quiet /var/lib/jenkins s3://",
+                      { "Ref": "BackupBucket" },
+                      "/Backups/sync/JENKINS_HOME/\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
               }
             },
             "commands": {
               "1-appinstall-script": {
                 "command": "bash -xe /etc/cfn/scripts/appinstall.sh"
+              },
+              "2-append-root_cron": {
+                "command": "cat /tmp/root.cron >> /var/spool/cron/root"
+              },
+              "3-restart-cron": {
+                "command": "systemctl restart crond"
               }
             }
           },
