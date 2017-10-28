@@ -5,6 +5,12 @@
 #################################################################
 # shellcheck disable=SC2086
 PROGNAME="$(basename ${0})"
+while read -r JNKENV
+# Read args from envs file
+do
+   # shellcheck disable=SC2163
+   export "${JNKENV}"
+done < /etc/cfn/Jenkins.envs
 EPELREPO="${JENKINS_EPEL_REPO:-UNDEF}"
 FWSVCS=(
       http
