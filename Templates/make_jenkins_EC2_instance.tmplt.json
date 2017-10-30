@@ -280,6 +280,11 @@
       "Description": "URL to the Jenkins yum-repository",
       "Type": "String"
     },
+    "JenkinsRpmName": {
+      "Description": "Name of Jenkins RPM to install. Include release version if 'other-than-latest' is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc.",
+      "Type": "String",
+      "AllowedPattern": "^jenkins.*$"
+    },
     "KeyPairName": {
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
       "Type": "AWS::EC2::KeyPair::KeyName"
@@ -587,6 +592,9 @@
                       "\n",
                       "JENKINS_EPEL_REPO=",
                       { "Ref": "EpelRepo" },
+                      "\n",
+                      "JENKINS_RPM_NAME=",
+                      { "Ref": "JenkinsRpmName" },
                       "\n"
                     ]
                   ]

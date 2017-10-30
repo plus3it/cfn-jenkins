@@ -18,6 +18,7 @@ JENKBKUPBKT="${JENKINS_BACKUP_BUCKET:-UNDEF}"
 JENKBKUPFLD="${JENKINS_BACKUP_FOLDER:-UNDEF}"
 JENKHOMEURL="s3://${JENKBKUPBKT}/${JENKBKUPFLD}"
 JENKINITTOK="${JENKDATADIR}/secrets/initialAdminPassword"
+JENKRPM=${JENKINS_RPM_NAME:-UNDEF}
 
 ##
 ## Set up an error logging and exit-state
@@ -38,8 +39,31 @@ function err_exit {
    fi
 }
 
+##
+## Decide what Jenkins version to install
+function InstJenkins {
+   local CPUARCH
+      CPUARCH=$(uname -i)
+   local RPMARR
+      RPMARR=(
+       $(
+         yum --showduplicates list available "${JENKRPM}" | \
+         tail -1
+        )
+      )
+
+   if [[ ${#RPMARR[@]} -gt 0 ]]
+   then
+      yum install -qy "${RPMARR[0]/.${CPUARCH}/}-${RPMARR[1]}.${CPUARCH}"
+   else
+      err_exit 'Was not able to determine Jenkins version to install'
+   fi
+}
+
+
+
 # Install Jenkins from RPM/yum
-yum install -y jenkins || err_exit 'Jenkins install failed'
+yum install -y "${JENKRPM}" || err_exit 'Jenkins install failed'
      
 # Restore JENKINS_HOME content (if available)
 if [[ $(aws s3 ls ${JENKHOMEURL} > /dev/null 2>&1 )$? -gt 0 ]]

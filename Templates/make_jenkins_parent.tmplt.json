@@ -282,6 +282,11 @@
       "Description": "URL to the Jenkins yum-repository",
       "Type": "String"
     },
+    "JenkinsRpmName": {
+      "Description": "Name of Jenkins RPM to install. Include release version if 'other-than-latest' is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc.",
+      "Type": "String",
+      "AllowedPattern": "^jenkins.*$"
+    },
     "JenkinsServicePort": {
       "Default": "8080",
       "Description": "TCP Port number that the Jenkins host forwards to.",
@@ -413,6 +418,7 @@
           "JenkinsOsPrepScriptUrl": { "Ref": "JenkinsOsPrepScriptUrl" },
           "JenkinsRepoKeyURL": { "Ref": "JenkinsRepoKeyURL" },
           "JenkinsRepoURL": { "Ref": "JenkinsRepoURL" },
+          "JenkinsRpmName": { "Ref": "JenkinsRpmName" },
           "KeyPairName": { "Ref": "KeyPairName" },
           "NoPublicIp": { "Ref": "NoPublicIp" },
           "NoReboot": { "Ref": "NoReboot" },
