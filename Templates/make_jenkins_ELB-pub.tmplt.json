@@ -21,7 +21,8 @@
             "JenkinsServicePort",
             "JenkinsAgentPort",
             "JenkinsListenerCert",
-            "JenkinsPassesSsh"
+            "JenkinsPassesSsh",
+            "BackendTimeout"
           ]
         }
       ]
@@ -37,6 +38,13 @@
     }
   },
   "Parameters": {
+    "BackendTimeout": {
+      "Default": "600",
+      "Description": "How long - in seconds - back-end connection may be idle before attempting session-cleanup",
+      "MinValue": "60",
+      "MaxValue": "3600",
+      "Type": "Number"
+    },
     "JenkinsAgentPort": {
       "Description": "TCP Port number that the Jenkins agent-hosts connect through.",
       "MaxValue": "65535",
@@ -92,6 +100,9 @@
     "JenkinsPubElb": {
       "Metadata": {},
       "Properties": {
+        "ConnectionSettings": {
+          "IdleTimeout": { "Ref": "BackendTimeout" }
+        },
         "CrossZone": "true",
         "HealthCheck": {
           "HealthyThreshold": "5",

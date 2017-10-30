@@ -164,6 +164,13 @@
       "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "Type": "String"
     },
+    "BackendTimeout": {
+      "Default": "600",
+      "Description": "How long - in seconds - back-end connection may be idle before attempting session-cleanup",
+      "MinValue": "60",
+      "MaxValue": "3600",
+      "Type": "Number"
+    },
     "BackupCronURL": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the Jenkins backup cron-file",
@@ -438,6 +445,7 @@
     "ElbRes": {
       "Properties": {
         "Parameters": {
+          "BackendTimeout": { "Ref": "BackendTimeout" },
           "HaSubnets": {
             "Fn::Join": [
               ",",
