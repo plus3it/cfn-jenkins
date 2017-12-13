@@ -3,72 +3,37 @@
   "Conditions": {
     "AssignInstanceRole": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "InstanceRole" },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "InstanceRole" }, "" ] }
       ]
     },
     "AssignPublicIp": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "NoPublicIp" },
-            "true"
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "NoPublicIp" }, "true" ] }
       ]
     },
     "AssignStaticPrivateIp": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "PrivateIp" },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "PrivateIp" }, "" ] }
       ]
     },
     "CreateAppVolume": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "AppVolumeDevice" },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "" ] }
       ]
     },
     "InstallUpdates": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "NoUpdates" },
-            "true"
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
       ]
     },
     "Reboot": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "NoReboot" },
-            "true"
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
       ]
     },
     "UseCfnUrl": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "CfnEndpointUrl" },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "CfnEndpointUrl" }, "" ] }
       ]
     }
   },
