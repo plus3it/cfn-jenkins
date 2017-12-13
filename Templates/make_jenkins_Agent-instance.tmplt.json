@@ -308,6 +308,37 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "admkey-install": {
+            "files": {
+              "/tmp/adminkeys.pub": {
+                "source": { "Ref": "AdminPubkeyURL" },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              },
+              "/tmp/admkey.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PROVHOME=$(getent passwd ",
+                      { "Ref": "ProvisionUser" },
+                      " | awk -F\":\" '{print $6}')\n",
+                      "\n",
+                      "install -b -m 000600 -o ",
+                      { "Ref": "ProvisionUser" },
+                      " -g ",
+                      { "Ref": "ProvisionUser" },
+                      " /tmp/adminkeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+	    },
             "commands": {
               "10-admkey-install": {
                 "command": "bash -xe /tmp/admkey.sh"
@@ -445,35 +476,6 @@
                 },
                 "group": "root",
                 "mode": "000444",
-                "owner": "root"
-              },
-              "/tmp/adminkeys.pub": {
-                "source": { "Ref": "AdminPubkeyURL" },
-                "group": "root",
-                "mode": "000600",
-                "owner": "root"
-              },
-              "/tmp/admkey.sh": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "#!/bin/bash\n\n",
-                      "PROVHOME=$(getent passwd ",
-                      { "Ref": "ProvisionUser" },
-                      " | awk -F\":\" '{print $6}')\n",
-                      "\n",
-                      "install -b -m 000600 -o ",
-                      { "Ref": "ProvisionUser" },
-                      " -g ",
-                      { "Ref": "ProvisionUser" },
-                      " /tmp/adminkeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
-                      "\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000700",
                 "owner": "root"
               },
               "/tmp/ZAP_Linux.tar.gz": {
