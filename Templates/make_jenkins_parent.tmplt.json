@@ -86,16 +86,33 @@
     }
   },
   "Outputs": {
+    "JenkinsControlNode": {
+      "Description": "Raw FQDN of ELB pointing to Jenkins master",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-ELB-FQDN" }
+      },
+      "Value": { "Fn::GetAtt": [ "ElbRes", "Outputs.JenkinsElbFqdn" ] }
+    },
+    "JenkinsIamRole": {
+      "Description": "Privilege-role assined to master node",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRole"}
+      },
+      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ] }
+    },
     "JenkinsInstanceId": {
       "Description": "Instance ID of the Jenkins Master node's EC2 instance.",
       "Export": {
-        "Name": {
-          "Fn::Sub": "${AWS::StackName}-Master-InstanceId"
-        }
+        "Name": { "Fn::Sub": "${AWS::StackName}-Master-InstanceId" }
       },
-      "Value": {
-        "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsInstanceId" ]
-      }
+      "Value": { "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsInstanceId" ] }
+    },
+    "JenkinsS3Bucket": {
+      "Description": "Name of S3 bucket used for storing backup data.",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-BackupBucket" }
+      },
+      "Value": { "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ] }
     },
     "JenkinsVpcId": {
       "Description": "VPC-ID that Jenkins stack is deployed into.",
