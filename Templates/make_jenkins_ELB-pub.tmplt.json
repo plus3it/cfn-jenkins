@@ -1,6 +1,11 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "SetPrettyName": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "ProxyPrettyName" }, "" ] }
+      ]
+    },
     "EnableSshPassthru": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "JenkinsPassesSsh" }, "" ] }
@@ -165,7 +170,13 @@
             }
           }
         ],
-        "LoadBalancerName": { "Ref": "ProxyPrettyName" },
+        "LoadBalancerName": {
+          "Fn::If": [
+            "SetPrettyName",
+            { "Ref": "ProxyPrettyName" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "Scheme": "internet-facing",
         "SecurityGroups": { "Ref": "SecurityGroupIds" },
         "Subnets": { "Ref": "HaSubnets" },
