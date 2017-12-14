@@ -64,6 +64,19 @@ function InstJenkins {
 
 # Install Jenkins from RPM/yum
 yum install -y "${JENKRPM}" || err_exit 'Jenkins install failed'
+
+# Ensure that Jenkins uses a safe TEMP-dir
+printf "Backing up /etc/sysconfig/jenkins... "
+install -b -m 000600 /etc/sysconfig/jenkins /etc/sysconfig/jenkins.bak && \
+  echo "Success" || err_exit "Failed to back up /etc/sysconfig/jenkins"
+
+printf "Relocating Jenkins's TEMP-dir... "
+sed -i '/^JENKINS_JAVA_OPTIONS/s/"$/ -Djava.io.tmpdir=$JENKINS_HOME\/tmp"/' /etc/sysconfig/jenkins && \
+  echo "Success" || err_exit "Failed to relocate Jenkins's TEMP-dir"
+
+printf "Creating Jenkins's safe TEMP-dir... "
+install -d -m 000750 -o jenkins -g jenkins /var/lib/jenkins/tmp && \
+  echo "Success" || err_exit "Failed to create Jenkins's safe TEMP-dir"
      
 # Restore JENKINS_HOME content (if available)
 if [[ $(aws s3 ls ${JENKHOMEURL} > /dev/null 2>&1 )$? -gt 0 ]]
