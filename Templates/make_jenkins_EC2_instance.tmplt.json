@@ -436,7 +436,7 @@
                       "0 23 * * * sudo -H -u jenkins /usr/bin/aws s3 ",
                       "sync --delete --quiet /var/lib/jenkins s3://",
                       { "Ref": "BackupBucket" },
-                      "/Backups/daily/$(date '+%A')/\n",
+                      "/Backups/daily/$(date '+\\%A')/\n",
                       "# Sync JENKINS_HOME to S3 for re-deployments\n",
                       "*/20 * * * * sudo -H -u jenkins /usr/bin/aws s3 ",
                       "sync --delete --quiet /var/lib/jenkins s3://",
