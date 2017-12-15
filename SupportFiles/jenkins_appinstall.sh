@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2005,SC2059
+# shellcheck disable=SC2005,SC2059,SC2015
 #
 # Script to install and configure Jenkins and related components
 #
@@ -71,6 +71,7 @@ install -b -m 000600 /etc/sysconfig/jenkins /etc/sysconfig/jenkins.bak && \
   echo "Success" || err_exit "Failed to back up /etc/sysconfig/jenkins"
 
 printf "Relocating Jenkins's TEMP-dir... "
+# shellcheck disable=SC2016
 sed -i '/^JENKINS_JAVA_OPTIONS/s/"$/ -Djava.io.tmpdir=$JENKINS_HOME\/tmp"/' /etc/sysconfig/jenkins && \
   echo "Success" || err_exit "Failed to relocate Jenkins's TEMP-dir"
 
