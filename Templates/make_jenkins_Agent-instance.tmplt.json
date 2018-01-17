@@ -35,6 +35,21 @@
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "CfnEndpointUrl" }, "" ] }
       ]
+    },
+    "UseChainScript": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "ChainScriptUrl" }, "" ] }
+      ]
+    },
+    "UseKeyPair": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
+      ]
+    },
+    "UseRepoKey": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "GitRepoKeyUrl" }, "" ] }
+      ]
     }
   },
   "Description": "This template deploys a Linux instance to host the Jenkins slave-agent.",
@@ -169,6 +184,12 @@
       "Description": "(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
       "Type": "String"
     },
+    "ChainScriptUrl": {
+      "AllowedPattern": "^$|^http[s]?://.*$|s3://.*$",
+      "Default": "",
+      "Description": "(Optional) URL to a \"chain\" script - a script to install add-ons not part of the core agent install.",
+      "Type": "String"
+    },
     "Domainname": {
       "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
       "Description": "Suffix for Jenkins's hostname and DNS record",
@@ -179,6 +200,12 @@
       "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
       "Default": "epel",
       "Description": "Name of network's EPEL repo.",
+      "Type": "String"
+    },
+    "GitRepoKeyUrl": {
+      "AllowedPattern": "^$|^http[s]?://.*$|s3://.*$",
+      "Default": "",
+      "Description": "(Optional) If hosting the chain-script (or its sub-scripts) in an authenticated git-repos, provide the URL of the git repository-key",
       "Type": "String"
     },
     "Hostname": {
@@ -219,8 +246,8 @@
       "Type": "String"
     },
     "KeyPairName": {
-      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Description": "Name of default SSH key to inject into default user account (Optional: mostly redundant when \"AdminPubkeyURL\"is specified)",
+      "Type": "String"
     },
     "NpmSetupUri": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
@@ -345,14 +372,43 @@
               }
             }
           },
+          "chain-script": {
+            "commands": {
+              "1-run-chain-script": {
+                "command": "bash -e /etc/cfn/scripts/chain-script"
+              }
+            },
+            "files": {
+              "/etc/cfn/scripts/chain-script": {
+                "source": { "Ref": "ChainScriptUrl" },
+                "group": "root",
+                "mode": "000750",
+                "owner": "root"
+              }
+            }
+          },
           "configSets": {
             "default": [
               "config",
               "admkey-install",
+              {
+                "Fn::If": [
+                  "UseRepoKey",
+                  "ssh-client-prep",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               "watchmaker-install",
               "yum-addons",
               "install-jenkins-agent",
               "systemd-jenkins-agent",
+              {
+                "Fn::If": [
+                  "UseChainScript",
+                  "chain-script",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               "finalize"
             ]
           },
@@ -557,6 +613,32 @@
               } 
             }
           },
+          "ssh-client-prep": {
+            "files": {
+              "/root/.ssh/id_rsa": {
+                "source": { "Ref": "GitRepoKeyUrl" },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
+              "/root/.ssh/config": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "Host *\n",
+                      "CheckHostIP false\n",
+                      "UserKnownHostsFile /dev/null\n",
+                      "StrictHostKeyChecking no\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              }
+            }
+          },
           "systemd-jenkins-agent":{
             "files": {
               "/etc/systemd/system/jenkins-agent.service": {
@@ -688,7 +770,13 @@
         },
         "ImageId": { "Ref": "AmiId" },
         "InstanceType": { "Ref": "InstanceType" },
-        "KeyName": { "Ref": "KeyPairName" },
+        "KeyName": {
+          "Fn::If": [
+            "UseKeyPair",
+            { "Ref": "KeyPairName" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "NetworkInterfaces": [
           {
             "DeviceIndex": "0",
@@ -699,12 +787,8 @@
                 "false"
               ]
             },
-            "GroupSet": {
-              "Ref": "SecurityGroupIds"
-            },
-            "SubnetId": {
-              "Ref": "SubnetId"
-            }
+            "GroupSet": { "Ref": "SecurityGroupIds" },
+            "SubnetId": { "Ref": "SubnetId" }
           }
         ],
         "Tags": [
