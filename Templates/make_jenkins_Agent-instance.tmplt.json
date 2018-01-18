@@ -26,6 +26,34 @@
         { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
       ]
     },
+    "NotGenFive": {
+      "Fn::Not": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                { "Fn::Select": [
+                    "0",
+                    { "Fn::Split": [ ".", { "Ref": "InstanceType" } ] }
+                  ]
+                },
+                "c5"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                { "Fn::Select": [
+                    "0",
+                    { "Fn::Split": [ ".", { "Ref": "InstanceType" } ] }
+                  ]
+                },
+                "m5"
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "Reboot": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
@@ -53,7 +81,18 @@
     }
   },
   "Description": "This template deploys a Linux instance to host the Jenkins slave-agent.",
-  "Mappings": {},
+  "Mappings": {
+    "InstanceTypeCapabilities": {
+      "IsGenFive": {
+        "ExternDeviceName": "/dev/xvdf",
+        "InternDeviceName": "/dev/nvme1n1"
+      },
+      "PreGenFive": {
+        "ExternDeviceName": "/dev/xvdf",
+        "InternDeviceName": "/dev/xvdf"
+      }
+    }
+  },
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -141,15 +180,11 @@
     },
     "AppVolumeDevice": {
       "AllowedValues": [
-        "",
-        "/dev/xvdf",
-        "/dev/xvdg",
-        "/dev/xvdh",
-        "/dev/xvdi",
-        "/dev/xvdj"
+        "true",
+        "false"
       ],
-      "Default": "",
-      "Description": "(Optional) Device to mount an extra EBS volume. Leave blank to launch without an extra application volume",
+      "Default": "false",
+      "Description": "Whether to mount an extra EBS volume. Leave as default (\"false\") to launch without an extra application volume",
       "Type": "String"
     },
     "AppVolumeMountPath": {
@@ -220,16 +255,29 @@
     },
     "InstanceType": {
       "AllowedValues": [
-        "t2.micro",
         "t2.small",
         "t2.medium",
         "t2.large",
+        "t2.xlarge",
+        "t2.2xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "m5.2xlarge",
+        "m5.4xlarge",
+        "c5.large",
+        "c5.xlarge",
+        "c5.2xlarge",
+        "c5.4xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
         "c4.large",
         "c4.xlarge",
-        "m4.large",
-        "m4.xlarge"
+        "c4.2xlarge",
+        "c4.4xlarge"
       ],
-      "Default": "t2.micro",
+      "Default": "t2.small",
       "Description": "Amazon EC2 instance type",
       "Type": "String"
     },
@@ -739,7 +787,7 @@
       "Properties": {
         "BlockDeviceMappings": [
           {
-            "DeviceName": "/dev/xvda",
+            "DeviceName": "/dev/sda1",
             "Ebs": {
               "DeleteOnTermination": "true",
               "VolumeSize": "20",
@@ -750,7 +798,25 @@
             "Fn::If": [
               "CreateAppVolume",
               {
-                "DeviceName": { "Ref": "AppVolumeDevice" },
+                "DeviceName": {
+                  "Fn::If": [
+                    "NotGenFive",
+                    {
+                      "Fn::FindInMap": [
+                         "InstanceTypeCapabilities",
+                         "PreGenFive",
+                         "ExternDeviceName"
+                      ]
+                    },
+                    {
+                      "Fn::FindInMap": [
+                        "InstanceTypeCapabilities",
+                        "IsGenFive",
+                        "ExternDeviceName"
+                      ]
+                    }
+                  ]
+                },
                 "Ebs": {
                   "DeleteOnTermination": "true",
                   "VolumeSize": { "Ref": "AppVolumeSize" },
@@ -836,11 +902,47 @@
                         [
                           "bootcmd:\n",
                           "- cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
-                          { "Ref": "AppVolumeDevice" },
+                          {
+                            "Fn::If": [
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
+                            ]
+                          },
                           "\n",
                           "mounts:\n",
                           "- [ ",
-                          { "Ref": "AppVolumeDevice" },
+                          {
+                            "Fn::If": [
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
+                            ]
+                          },
                           ", ",
                           { "Ref": "AppVolumeMountPath" },
                           " ]\n"
