@@ -3,57 +3,119 @@
   "Conditions": {
     "AssignInstanceRole": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "InstanceRole" },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "InstanceRole" }, "" ] }
       ]
     },
     "AssignPublicIp": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "NoPublicIp" },
-            "true"
-          ]
-        }
-      ]
-    },
-    "AssignStaticPrivateIp": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "PrivateIp" },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "NoPublicIp" }, "true" ] }
       ]
     },
     "CreateAppVolume": {
+      "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "true" ]
+    },
+    "InstallUpdates": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
+      ]
+    },
+    "NotGenFive": {
       "Fn::Not": [
         {
-          "Fn::Equals": [
-            { "Ref": "AppVolumeDevice" },
-            ""
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                { "Fn::Select": [
+                    "0",
+                    { "Fn::Split": [ ".", { "Ref": "InstanceType" } ] }
+                  ]
+                },
+                "c5"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                { "Fn::Select": [
+                    "0",
+                    { "Fn::Split": [ ".", { "Ref": "InstanceType" } ] }
+                  ]
+                },
+                "m5"
+              ]
+            }
           ]
         }
+      ]
+    },
+    "Reboot": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
+      ]
+    },
+    "UseAdminGroups": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerAdminGroups" }, "" ] }
+      ]
+    },
+    "UseAdminUsers": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerAdminUsers" }, "" ] }
       ]
     },
     "UseCfnUrl": {
       "Fn::Not": [
-        {
-          "Fn::Equals": [
-            { "Ref": "CfnEndpointUrl" },
-            ""
-          ]
-        }
+        { "Fn::Equals": [ { "Ref": "CfnEndpointUrl" }, "" ] }
+      ]
+    },
+    "UseChainScript": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "ChainScriptUrl" }, "" ] }
+      ]
+    },
+    "UseKeyPair": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
+      ]
+    },
+    "UseRepoKey": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "GitRepoKeyUrl" }, "" ] }
+      ]
+    },
+    "UseEnvironment": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
+      ]
+    },
+    "UseOuPath": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerOuPath" }, "" ] }
+      ]
+    },
+    "UseS3Source": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerS3Source" }, "false" ] }
+      ]
+    },
+    "UseWamConfig": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerConfig" }, "" ] }
       ]
     }
   },
-  "Description": "Template to deploy (Linux-based) Jenkins agents via auto-scaling mechanisms.",
-  "Mappings": {},
+  "Description": "This template creates an Autoscaling Group and Launch Configuration that deploys Linux instances with Watchmaker, which applies the DISA STIG.",
+  "Mappings": {
+    "InstanceTypeCapabilities": {
+      "IsGenFive": {
+        "ExternDeviceName": "/dev/xvdf",
+        "InternDeviceName": "/dev/nvme1n1"
+      },
+      "PreGenFive": {
+        "ExternDeviceName": "/dev/xvdf",
+        "InternDeviceName": "/dev/xvdf"
+      }
+    }
+  },
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -69,15 +131,26 @@
             "NoPublicIp",
             "NoReboot",
             "NoUpdates",
-            "Hostname",
-            "Domainname",
-            "SecurityGroupIds",
-            "AdminPubkeyURL"
+            "SecurityGroupIds"
           ]
         },
         {
           "Label": {
-            "default": "Jenkins EBS Volume (Optional)"
+            "default": "EC2 Watchmaker Configuration"
+          },
+          "Parameters": [
+            "PypiIndexUrl",
+            "WatchmakerConfig",
+            "WatchmakerEnvironment",
+            "WatchmakerOuPath",
+            "WatchmakerAdminGroups",
+            "WatchmakerAdminUsers",
+            "WatchmakerS3Source"
+          ]
+        },
+        {
+          "Label": {
+            "default": "EC2 Application EBS Volume"
           },
           "Parameters": [
             "AppVolumeDevice",
@@ -85,15 +158,55 @@
             "AppVolumeSize",
             "AppVolumeType"
           ]
+        },
+        {
+          "Label": {
+            "default": "AutoScale Configuration"
+          },
+          "Parameters": [
+            "DesiredCapacity",
+            "MinCapacity",
+            "MaxCapacity"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "SubnetIds"
+          ]
+        },
+        {
+          "Label": {
+            "default": "CloudFormation Configuration"
+          },
+          "Parameters": [
+            "CfnEndpointUrl",
+            "CfnGetPipUrl",
+            "ToggleCfnInitUpdate",
+            "ToggleNewInstances"
+          ]
         }
-      ]
+      ],
+      "ParameterLabels": {
+        "ToggleCfnInitUpdate": {
+          "default": "Force Cfn Init Update"
+        },
+        "ToggleNewInstances": {
+          "default": "Force New Instances"
+        }
+      }
     }
   },
-  "Outputs": {},
   "Parameters": {
-    "AdminPubkeyURL": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+    "AdminPubkeyURL":{
       "Description": "URL the file containing the admin group's SSH public keys.",
+      "Type": "String",
+      "AllowedPattern": "^$|^http://.*$|^https://.*$"
+    },
+    "AgentAuthToken": {
+      "Description": "Authentication token-string used for JNLP config.",
       "Type": "String"
     },
     "AmiId": {
@@ -103,20 +216,16 @@
     },
     "AppVolumeDevice": {
       "AllowedValues": [
-        "",
-        "/dev/xvdf",
-        "/dev/xvdg",
-        "/dev/xvdh",
-        "/dev/xvdi",
-        "/dev/xvdj"
+        "true",
+        "false"
       ],
-      "Default": "",
-      "Description": "(Optional) Device to mount an extra EBS volume. Leave blank to launch without an extra application volume",
+      "Default": "false",
+      "Description": "Whether to mount an extra EBS volume. Leave as default (\"false\") to launch without an extra application volume",
       "Type": "String"
     },
     "AppVolumeMountPath": {
       "AllowedPattern": "/.*",
-      "Default": "/var/jenkins",
+      "Default": "/opt/data",
       "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
       "Type": "String"
     },
@@ -146,6 +255,23 @@
       "Description": "(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
       "Type": "String"
     },
+    "CfnGetPipUrl": {
+      "AllowedPattern": "^http[s]?://.*\\.py$",
+      "Default": "https://bootstrap.pypa.io/get-pip.py",
+      "Description": "URL to get-pip.py",
+      "Type": "String"
+    },
+    "ChainScriptUrl": {
+      "AllowedPattern": "^$|^http[s]?://.*$|s3://.*$",
+      "Default": "",
+      "Description": "(Optional) URL to a \"chain\" script - a script to install add-ons not part of the core agent install.",
+      "Type": "String"
+    },
+    "DesiredCapacity": {
+      "Default": "1",
+      "Description": "Desired number of instances in the Autoscaling Group",
+      "Type": "Number"
+    },
     "Domainname": {
       "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
       "Description": "Suffix for Jenkins's hostname and DNS record",
@@ -158,14 +284,32 @@
       "Description": "Name of network's EPEL repo.",
       "Type": "String"
     },
+    "GitRepoKeyUrl": {
+      "AllowedPattern": "^$|^http[s]?://.*$|s3://.*$",
+      "Default": "",
+      "Description": "(Optional) If hosting the chain-script (or its sub-scripts) in an authenticated git-repos, provide the URL of the git repository-key",
+      "Type": "String"
+    },
     "Hostname": {
       "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
       "Description": "Node-name for Jenkins's hostname and DNS record",
       "Type": "String"
     },
+    "JenkinsAgentName": {
+      "Description": "Name assigned to this Jenkins build-executor.",
+      "Type": "String"
+    },
+    "JenkinsMaster": {
+      "Description": "FQDN of Jenkins master node",
+      "Type": "String"
+    },
+    "JenkinsUserScriptUrl": {
+      "Description": "URL of Jenkins Agent setup script",
+      "Type": "String"
+    },
     "InstanceRole": {
       "Default": "",
-      "Description": "(Optional) IAM instance role to apply to the instance",
+      "Description": "(Optional) IAM instance role to apply to the instance(s)",
       "Type": "String"
     },
     "InstanceType": {
@@ -174,10 +318,15 @@
         "t2.small",
         "t2.medium",
         "t2.large",
-        "c4.large",
-        "c4.xlarge",
+        "t2.xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "c5.large",
+        "c5.xlarge",
         "m4.large",
-        "m4.xlarge"
+        "m4.xlarge",
+        "c4.large",
+        "c4.xlarge"
       ],
       "Default": "t2.micro",
       "Description": "Amazon EC2 instance type",
@@ -185,7 +334,23 @@
     },
     "KeyPairName": {
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Type": "String"
+    },
+    "MaxCapacity": {
+      "Default": "2",
+      "Description": "Maximum number of instances in the Autoscaling Group",
+      "Type": "Number"
+    },
+    "MinCapacity": {
+      "Default": "1",
+      "Description": "Minimum number of instances in the Autoscaling Group",
+      "Type": "Number"
+    },
+    "NpmSetupUri": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://rpm.nodesource.com/setup_8.x",
+      "Description": "URL of NPM setup script.",
+      "Type": "String"
     },
     "NoPublicIp": {
       "AllowedValues": [
@@ -214,32 +379,16 @@
       "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
       "Type": "String"
     },
-    "NodesourceSetupUri": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Default": "https://rpm.nodesource.com/setup_8.x",
-      "Description": "URL of NPM setup script.",
-      "Type": "String"
-    },
     "PipRpm": {
       "Default": "python2-pip",
       "Description": "Name of preferred pip RPM.",
-      "Type": "String"
-    },
-    "PrivateIp": {
-      "Default": "",
-      "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
       "Type": "String"
     },
     "ProvisionUser": {
       "AllowedPattern": "[a-z0-9]{6,12}+",
       "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
       "Default": "jenkagent",
-      "Description": "Default login user account name.",
-      "Type": "String"
-    },
-    "PyStache": {
-      "Default": "pystache",
-      "Description": "Name of preferred pystache RPM.",
+      "Description": "Default login user account name (do not use \"jenkins\").",
       "Type": "String"
     },
     "PypiIndexUrl": {
@@ -248,44 +397,859 @@
       "Description": "URL to the PyPi Index",
       "Type": "String"
     },
+    "PyStache": {
+      "Default": "pystache",
+      "Description": "Name of preferred pystache RPM.",
+      "Type": "String"
+    },
     "SecurityGroupIds": {
-      "Description": "List of security groups to apply to the instance",
+      "Description": "List of security groups to apply to the instance(s)",
       "Type": "List<AWS::EC2::SecurityGroup::Id>"
     },
-    "SubnetList": {
-      "Description": "ID of the subnet to assign to the instance",
+    "SubnetIds": {
+      "Description": "List of subnets to associate to the Autoscaling Group",
       "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "ToggleCfnInitUpdate": {
+      "AllowedValues": [
+        "A",
+        "B"
+      ],
+      "Default": "A",
+      "Description": "A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence",
+      "Type": "String"
+    },
+    "ToggleNewInstances": {
+      "AllowedValues": [
+        "A",
+        "B"
+      ],
+      "Default": "A",
+      "Description": "A/B toggle that forces a change to instance userdata, triggering new instances via the Autoscale update policy",
+      "Type": "String"
+    },
+    "WatchmakerAdminGroups": {
+      "Default": "",
+      "Description": "(Optional) Colon-separated list of domain groups that should have admin permissions on the EC2 instance",
+      "Type": "String"
+    },
+    "WatchmakerAdminUsers": {
+      "Default": "",
+      "Description": "(Optional) Colon-separated list of domain users that should have admin permissions on the EC2 instance",
+      "Type": "String"
+    },
+    "WatchmakerConfig": {
+      "AllowedPattern": "^$|^http[s]?://.*$",
+      "Default": "",
+      "Description": "(Optional) URL to a Watchmaker config file",
+      "Type": "String"
+    },
+    "WatchmakerEnvironment": {
+      "AllowedValues": [
+        "",
+        "dev",
+        "test",
+        "prod"
+      ],
+      "Default": "",
+      "Description": "Environment in which the instance is being deployed",
+      "Type": "String"
+    },
+    "WatchmakerOuPath": {
+      "AllowedPattern": "^$|^(OU=.+,)+(DC=.+)+$",
+      "Default": "",
+      "Description": "(Optional) DN of the OU to place the instance when joining a domain. If blank and \"WatchmakerEnvironment\" enforces a domain join, the instance will be placed in a default container. Leave blank if not joining a domain, or if \"WatchmakerEnvironment\" is \"false\"",
+      "Type": "String"
+    },
+    "WatchmakerS3Source": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Flag that tells watchmaker to use its instance role to retrieve watchmaker content from S3",
+      "Type": "String"
+    },
+    "ZapAgentUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OWASP ZAP archive-file.",
+      "Type": "String"
     }
   },
   "Resources": {
-    "JenkinsAgentAsg": {
+    "WatchmakerAutoScalingGroup": {
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Count": { "Ref": "DesiredCapacity" },
+          "Timeout": "PT30M"
+        }
+      },
       "Properties": {
-        "AvailabilityZones": {
-          "Fn::GetAZs": ""
-        },
-        "DesiredCapacity": "2",
-        "LaunchConfigurationName": { "Ref": "JenkinsAgentLc" },
-        "MaxSize": "3",
-        "MinSize": "1",
+        "DesiredCapacity": { "Ref": "DesiredCapacity" },
+        "LaunchConfigurationName": { "Ref": "WatchmakerLaunchConfig" },
+        "MaxSize": { "Ref": "MaxCapacity" },
+        "MinSize": { "Ref": "MinCapacity" },
         "Tags": [
           {
             "Key": "Name",
-            "Value": "Jenkins (Linux) Agent",
-            "PropagateAtLaunch": "true"
+            "PropagateAtLaunch": "true",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  { "Ref": "AWS::StackName" }
+                ]
+              ]
+            }
           }
         ],
-        "VPCZoneIdentifier": { "Ref": "SubnetList" }
+        "VPCZoneIdentifier": { "Ref": "SubnetIds" }
       },
-      "Type": "AWS::AutoScaling::AutoScalingGroup"
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": "2",
+          "MinInstancesInService": "1",
+          "PauseTime": "PT30M",
+          "WaitOnResourceSignals": "true"
+        }
+      }
     },
-    "JenkinsAgentLc": {
+    "WatchmakerLaunchConfig": {
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "admkey-install": {
+            "files": {
+              "/etc/cfn/files/adminkeys.pub": {
+                "source": { "Ref": "AdminPubkeyURL" },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              },
+              "/etc/cfn/scripts/admkey.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PROVHOME=$(getent passwd ",
+                      { "Ref": "ProvisionUser" },
+                      " | awk -F\":\" '{print $6}')\n",
+                      "\n",
+                      "install -b -m 000600 -o ",
+                      { "Ref": "ProvisionUser" },
+                      " -g ",
+                      { "Ref": "ProvisionUser" },
+                      " /etc/cfn/files/adminkeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-admkey-install": {
+                "command": "bash -xe /etc/cfn/scripts/admkey.sh"
+              }
+            }
+          },
+          "chain-script": {
+            "commands": {
+              "1-run-chain-script": {
+                "command": "bash -e /etc/cfn/scripts/chain-script"
+              }
+            },
+            "files": {
+              "/etc/cfn/scripts/chain-script": {
+                "source": { "Ref": "ChainScriptUrl" },
+                "group": "root",
+                "mode": "000750",
+                "owner": "root"
+              }
+            }
+          },
+          "configSets": {
+            "launch": [
+              "setup",
+              "admkey-install",
+              {
+                "Fn::If": [
+                  "UseRepoKey",
+                  "ssh-client-prep",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
+              "watchmaker-install",
+              "watchmaker-launch",
+              "yum-addons",
+              "install-jenkins-agent",
+              "systemd-jenkins-agent",
+              {
+                "Fn::If": [
+                  "UseChainScript",
+                  "chain-script",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
+              "finalize",
+              {
+                "Fn::If": [
+                  "Reboot",
+                  "reboot",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              }
+            ],
+            "update": [
+              "setup",
+              "admkey-install",
+              {
+                "Fn::If": [
+                  "UseRepoKey",
+                  "ssh-client-prep",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
+              {
+                "Fn::If": [
+                  "InstallUpdates",
+                  "install-updates",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
+              "watchmaker-install",
+              "watchmaker-update",
+              "yum-addons",
+              "install-jenkins-agent",
+              "systemd-jenkins-agent",
+              {
+                "Fn::If": [
+                  "UseChainScript",
+                  "chain-script",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
+              "finalize",
+              {
+                "Fn::If": [
+                  "Reboot",
+                  "reboot",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              }
+            ]
+          },
+          "finalize": {
+            "commands": {
+              "10-signal-success": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "/opt/aws/bin/cfn-signal -e 0",
+                      " --stack ",
+                      { "Ref": "AWS::StackName" },
+                      " --resource WatchmakerAutoScalingGroup",
+                      {
+                        "Fn::If": [
+                          "AssignInstanceRole",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --role ",
+                                { "Ref": "InstanceRole" }
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseCfnUrl",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --url ",
+                                { "Ref": "CfnEndpointUrl" }
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      " --region ",
+                      { "Ref": "AWS::Region" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "ignoreErrors": "true"
+              }
+            }
+          },
+          "install-jenkins-agent": {
+            "users" : {
+              "jenkins" : {
+                "homeDir" : "/var/jenkins"
+              }
+            },
+            "files": {
+              "/tmp/user_script.sh": {
+                "source": { "Ref": "JenkinsUserScriptUrl" } ,
+                "group": "root",
+                "mode": "000755",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-jenkins-home-perm": {
+                "command": "chown -R jenkins:jenkins /var/jenkins"
+              },
+              "2-agent-install": {
+                "command": "sudo -H -u jenkins bash -xe /tmp/user_script.sh"
+              }
+            }
+          },
+          "install-updates": {
+            "commands": {
+              "10-install-updates": {
+                "command": "yum -y update"
+              }
+            }
+          },
+          "reboot": {
+            "commands": {
+              "10-reboot": {
+                "command": "shutdown -r +1 &"
+              }
+            }
+          },
+          "setup": {
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]\n",
+                      "stack=",
+                      { "Ref": "AWS::StackId" },
+                      "\n",
+                      "region=",
+                      { "Ref": "AWS::Region" },
+                      "\n",
+                      {
+                        "Fn::If": [
+                          "AssignInstanceRole",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "role=",
+                                { "Ref": "InstanceRole" },
+                                "\n"
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseCfnUrl",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "url=",
+                                { "Ref": "CfnEndpointUrl" },
+                                "\n"
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      "interval=1",
+                      "\n",
+                      "verbose=true",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]\n",
+                      "triggers=post.update\n",
+                      "path=Resources.WatchmakerLaunchConfig.Metadata\n",
+                      "action=/opt/aws/bin/cfn-init -v -c update",
+                      " --stack ",
+                      { "Ref": "AWS::StackName" },
+                      " --resource WatchmakerLaunchConfig",
+                      {
+                        "Fn::If": [
+                          "AssignInstanceRole",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --role ",
+                                { "Ref": "InstanceRole" }
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseCfnUrl",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --url ",
+                                { "Ref": "CfnEndpointUrl" }
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      " --region ",
+                      { "Ref": "AWS::Region" },
+                      "\n",
+                      "runas=root\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
+              "/etc/cfn/scripts/watchmaker-install.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PYPI_URL=",
+                      { "Ref": "PypiIndexUrl" },
+                      "\n",
+                      "pip install --index-url=\"$PYPI_URL\" wheel==0.29.0\n",
+                      "pip install",
+                      " --index-url=\"$PYPI_URL\"",
+                      " --upgrade pip setuptools boto3 watchmaker\n\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              },
+              "/etc/cfn/JenkinsAgent.envs": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "JENKINS_WORKDIR=",
+                      { "Ref": "AppVolumeMountPath" },
+                      "\n",
+                      "JENKINS_MASTER=",
+                      { "Ref": "JenkinsMaster" },
+                      "\n",
+                      "JENKINS_AUTH_TOKEN=",
+                      { "Ref": "AgentAuthToken" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000444",
+                "owner": "root"
+              },
+              "/tmp/ZAP_Linux.tar.gz": {
+                "source": { "Ref": "ZapAgentUrl" },
+                "group": "root",
+                "mode": "000444",
+                "owner": "root"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
+                }
+              }
+            }
+          },
+          "ssh-client-prep": {
+            "files": {
+              "/root/.ssh/id_rsa": {
+                "source": { "Ref": "GitRepoKeyUrl" },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
+              "/root/.ssh/config": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "Host *\n",
+                      "CheckHostIP false\n",
+                      "UserKnownHostsFile /dev/null\n",
+                      "StrictHostKeyChecking no\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              }
+            }
+          },
+          "systemd-jenkins-agent":{
+            "files": {
+              "/etc/systemd/system/jenkins-agent.service": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[Unit]\n",
+                      "Description=Jenkins Agent Daemon\n",
+                      "Wants=network-online.target\n",
+                      "Requires=network.target\n",
+                      "\n",
+                      "[Service]\n",
+                      "ExecStartPre=/bin/sleep 15\n",
+                      "ExecStart=/bin/java -jar ",
+                      { "Ref": "AppVolumeMountPath" },
+                      "/slave.jar -jnlpUrl https://",
+                      { "Ref": "JenkinsMaster" },
+                      "/computer/",
+                      { "Ref": "JenkinsAgentName" },
+                      "/slave-agent.jnlp -secret ",
+                      { "Ref": "AgentAuthToken" },
+                      " -workDir \"",
+                      { "Ref": "AppVolumeMountPath" },
+                      "\"\n",
+                      "User=jenkins\n",
+                      "Restart=always\n",
+                      "RestartSec=15\n",
+                      "\n",
+                      "[Install]\n",
+                      "WantedBy=multi-user.target\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-systemd-reload": {
+                "command": "systemctl daemon-reload"
+              },
+              "2-systemd-agent-start": {
+                "command": "systemctl start jenkins-agent.service"
+              },
+              "3-systemd-agent-enable": {
+                "command": "systemctl enable jenkins-agent.service"
+              }
+            }
+          },
+          "watchmaker-install": {
+            "commands": {
+              "10-watchmaker-install": {
+                "command": "bash -xe /etc/cfn/scripts/watchmaker-install.sh",
+                "env": {
+                  "AWS_CA_BUNDLE": "/etc/pki/tls/certs/ca-bundle.crt",
+                  "AWS_DEFAULT_REGION": { "Ref": "AWS::Region" },
+                  "REQUESTS_CA_BUNDLE": "/etc/pki/tls/certs/ca-bundle.crt"
+                }
+              }
+            }
+          },
+          "watchmaker-launch": {
+            "commands": {
+              "10-watchmaker-launch": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "watchmaker --log-level debug",
+                      " --log-dir /var/log/watchmaker",
+                      " --no-reboot",
+                      {
+                        "Fn::If": [
+                          "UseWamConfig",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --config \"",
+                                { "Ref": "WatchmakerConfig" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseEnvironment",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --env \"",
+                                { "Ref": "WatchmakerEnvironment" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseOuPath",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --ou-path \"",
+                                { "Ref": "WatchmakerOuPath" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseAdminGroups",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --admin-groups \"",
+                                { "Ref": "WatchmakerAdminGroups" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseAdminUsers",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --admin-users \"",
+                                { "Ref": "WatchmakerAdminUsers" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseS3Source",
+                          " --s3-source",
+                          ""
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          },
+          "watchmaker-update": {
+            "commands": {
+              "10-watchmaker-update": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "watchmaker --log-level debug",
+                      " --log-dir /var/log/watchmaker",
+                      " --salt-states None",
+                      " --no-reboot",
+                      {
+                        "Fn::If": [
+                          "UseWamConfig",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --config \"",
+                                { "Ref": "WatchmakerConfig" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseEnvironment",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --env \"",
+                                { "Ref": "WatchmakerEnvironment" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseOuPath",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --ou-path \"",
+                                { "Ref": "WatchmakerOuPath" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseAdminGroups",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --admin-groups \"",
+                                { "Ref": "WatchmakerAdminGroups" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseAdminUsers",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                " --admin-users \"",
+                                { "Ref": "WatchmakerAdminUsers" },
+                                "\""
+                              ]
+                            ]
+                          },
+                          ""
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "UseS3Source",
+                          " --s3-source",
+                          ""
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          },
+          "yum-addons": {
+            "commands": {
+              "1-yum-npm_repo": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "curl -sL ",
+                      { "Ref": "NpmSetupUri" },
+                      " | bash -\n"
+                    ]
+                  ]
+                }
+              },
+              "2-yum-packages": {
+                "command": {
+                  "Fn::Join": [
+                    " ",
+                    [
+                      "yum --enablerepo=epel install -y @development",
+                      "anaconda",
+                      "ansible",
+                      "fpm2",
+                      "groovy",
+                      "maven",
+                      "python-nose",
+                      "python-nose2",
+                      "ruby",
+                      "ubygems-devel",
+                      "ruby-devel",
+                      "nodejs\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "ToggleCfnInitUpdate": { "Ref": "ToggleCfnInitUpdate" }
+      },
       "Properties": {
+        "AssociatePublicIpAddress": {
+          "Fn::If": [
+            "AssignPublicIp",
+            "true",
+            "false"
+          ]
+        },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
               "DeleteOnTermination": "true",
-              "VolumeSize": "20",
               "VolumeType": "gp2"
             }
           },
@@ -293,7 +1257,25 @@
             "Fn::If": [
               "CreateAppVolume",
               {
-                "DeviceName": { "Ref": "AppVolumeDevice" },
+                "DeviceName": {
+                  "Fn::If": [
+                    "NotGenFive",
+                    {
+                      "Fn::FindInMap": [
+                         "InstanceTypeCapabilities",
+                         "PreGenFive",
+                         "ExternDeviceName"
+                      ]
+                    },
+                    {
+                      "Fn::FindInMap": [
+                        "InstanceTypeCapabilities",
+                        "IsGenFive",
+                        "ExternDeviceName"
+                      ]
+                    }
+                  ]
+                },
                 "Ebs": {
                   "DeleteOnTermination": "true",
                   "VolumeSize": { "Ref": "AppVolumeSize" },
@@ -313,13 +1295,28 @@
         },
         "ImageId": { "Ref": "AmiId" },
         "InstanceType": { "Ref": "InstanceType" },
-        "KeyName": { "Ref": "KeyPairName" },
+        "KeyName": {
+          "Fn::If": [
+            "UseKeyPair",
+            { "Ref": "KeyPairName" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "SecurityGroups": { "Ref": "SecurityGroupIds" },
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "",
               [
+                "Content-Type: multipart/mixed; boundary=\"===============3585321300151562773==\"\n",
+                "MIME-Version: 1.0\n",
+                "\n",
+                "--===============3585321300151562773==\n",
+                "Content-Type: text/cloud-config; charset=\"us-ascii\"\n",
+                "MIME-Version: 1.0\n",
+                "Content-Transfer-Encoding: 7bit\n",
+                "Content-Disposition: attachment; filename=\"cloud.cfg\"\n",
+                "\n",
                 "#cloud-config\n",
                 "\n",
                 "system_info:\n",
@@ -327,6 +1324,16 @@
                 "    name: ",
                 { "Ref": "ProvisionUser" },
                 "\n",
+                "users:\n",
+                "  - default\n",
+                "\n",
+                "hostname: ",
+                { "Ref": "Hostname" },
+                "\n",
+                "fqdn: ",
+                { "Ref": "Hostname" },
+                ".",
+                { "Ref": "Domainname" },
                 "\n",
                 {
                   "Fn::If": [
@@ -337,11 +1344,47 @@
                         [
                           "bootcmd:\n",
                           "- cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
-                          { "Ref": "AppVolumeDevice" },
+                          {
+                            "Fn::If": [
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
+                            ]
+                          },
                           "\n",
                           "mounts:\n",
                           "- [ ",
-                          { "Ref": "AppVolumeDevice" },
+                          {
+                            "Fn::If": [
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
+                            ]
+                          },
                           ", ",
                           { "Ref": "AppVolumeMountPath" },
                           " ]\n"
@@ -352,64 +1395,145 @@
                   ]
                 },
                 "\n",
-                "runcmd:\n",
-                "  - |\n",
-                "    # Export cert bundle ENVs\n",
-                "    export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
-                "    export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n\n",
-                "    \n",
-                "    # Define our error-handler\n",
-                "    function err_exit {\n",
-                "     echo \"${1}\"\n",
-                "     logger -p kern.crit -t UserData \"${1}\"\n",
-                "     exit 1\n",
-                "    }\n",
-                "    \n",
-                "    # Install RPMs needed by the cfn-tools.\n",
-                "    yum --enablerepo=",
-                { "Ref": "EpelRepo" },
-                " install -y ",
-                { "Ref": "PyStache" },
-                " ",
-                { "Ref": "PipRpm" },
-                " || err_exit 'Could not install Cfn dependencies.'\n",
-                "    \n",
-                "    # Install admin-groups keys to provisioning user\n",
-                "    printf \"Downloading admin-group's keys... \"\n",
-                "    curl -skL ",
-                     { "Ref": "AdminPubkeyURL" },
-                     " -o /tmp/admin.keys && echo 'Success!' || err_exit ",
-                     "'Could not download admin keys'\n",
-                "    printf \"Merging admin-group's keys... \"\n",
-                "    cat /tmp/admin.keys >> /home/",
-                     { "Ref": "ProvisionUser" },
-                     "/.ssh/authorized_keys && echo 'Success!' || err_exit ",
-                     "'Could not add admin keys'\n",
-                "    \n",
-                "    # Install nodejs repo-def\n",
-                "    curl -sL ",
-                { "Ref": "NodesourceSetupUri" },
-                " | bash -\n",
-                "    \n",
-                "    # Install packages needed to fully-enable the agent\n",
-                "    yum --enablerepo=epel install -y @development anaconda",
-                " ansible fpm2 groovy maven python-nose python-nose2",
-                " ruby rubygems-devel nodejs\n",
-                "    \n",
-                "    # Set perms on the jenkins dir\n",
-                "    if [[ -d ",
-                { "Ref": "AppVolumeMountPath" },
-                " ]]\n",
-                "    then\n",
-                "     chmod 1777 ",
-                { "Ref": "AppVolumeMountPath" },
-                " \n",
-                "    else\n",
-                "     install -d -m 001777 ",
-                { "Ref": "AppVolumeMountPath" },
-                " \n",
-                "    fi\n",
-                "    \n"
+                "--===============3585321300151562773==\n",
+                "Content-Type: text/x-shellscript; charset=\"us-ascii\"\n",
+                "MIME-Version: 1.0\n",
+                "Content-Transfer-Encoding: 7bit\n",
+                "Content-Disposition: attachment; filename=\"script.sh\"\n",
+                "\n",
+                "#!/bin/bash -xe\n\n",
+                "# CFN LaunchConfig Update Toggle: ",
+                { "Ref": "ToggleNewInstances" },
+                "\n\n",
+                "# Export cert bundle ENVs\n",
+                "export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
+                "export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n\n",
+                "\n",
+                "# Define our error-handler\n",
+                "function err_exit {\n",
+                "   echo \"${1}\"\n",
+                "   logger -p kern.crit -t UserData \"${1}\"\n",
+                "   /opt/aws/bin/cfn-signal -e 1 --stack ",
+                    { "Ref": "AWS::StackName" },
+                    " --resource JenkinsAgent\n",
+                "   exit 1\n",
+                "}\n",
+                "\n",
+                "# Install RPMs needed by the cfn-tools.\n",
+                "yum --enablerepo=",
+                 { "Ref": "EpelRepo" },
+                 " install -y ",
+                 { "Ref": "PyStache" },
+                 " ",
+                 { "Ref": "PipRpm" },
+                 " || err_exit 'Could not install Cfn dependencies.'\n",
+                "\n",
+                "# Update cfn-bootstrapper hash method\n",
+                "PYVERS=$(python -c 'import sys;",
+                 " version=sys.version_info[:2];",
+                 " print(\"{0}.{1}\".format(*version))')\n",
+                "sed -i '/^[ \\t][ \\t]*self._etag/s/etag$/None/'",
+                 " /usr/lib/python${PYVERS}/site-packages/cfnbootstrap",
+                 "/util.py\n",
+                "\n",
+                "INITDIR=$(find -L /opt/aws/apitools/cfn-init/init -name redhat ",
+                "2> /dev/null || echo /usr/init/redhat)\n",
+                "chmod 775 ${INITDIR}/cfn-hup\n",
+                "ln -f -s ${INITDIR}/cfn-hup /etc/rc.d/init.d/cfn-hup\n",
+                "chkconfig --add cfn-hup\n",
+                "chkconfig cfn-hup on\n",
+                "mkdir -p /opt/aws/bin\n",
+                "BINDIR=$(find -L /opt/aws/apitools/cfn-init -name bin ",
+                "2> /dev/null || echo /usr/bin)\n",
+                "for SCRIPT in cfn-elect-cmd-leader cfn-get-metadata cfn-hup ",
+                "cfn-init cfn-send-cmd-event cfn-send-cmd-result cfn-signal\n",
+                "do\n",
+                "  ln -s ${BINDIR}/${SCRIPT} /opt/aws/bin/${SCRIPT} 2> /dev/null || ",
+                "  echo Skipped symbolic link, /opt/aws/bin/${SCRIPT} already exists\n",
+                "done\n\n",
+                "# Add cfn-signal to path\n",
+                "hash cfn-signal 2> /dev/null || ",
+                "PATH=\"${PATH}:/usr/local/bin:/opt/aws/bin\"",
+                "\n\n",
+                "# Execute cfn-init\n",
+                "/opt/aws/bin/cfn-init -v -c launch",
+                " --stack ",
+                { "Ref": "AWS::StackName" },
+                " --resource WatchmakerLaunchConfig",
+                {
+                  "Fn::If": [
+                    "AssignInstanceRole",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          " --role ",
+                          { "Ref": "InstanceRole" }
+                        ]
+                      ]
+                    },
+                    ""
+                  ]
+                },
+                {
+                  "Fn::If": [
+                    "UseCfnUrl",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          " --url ",
+                          { "Ref": "CfnEndpointUrl" }
+                        ]
+                      ]
+                    },
+                    ""
+                  ]
+                },
+                " --region ",
+                { "Ref": "AWS::Region" },
+                " ||",
+                " ( echo 'ERROR: cfn-init failed! Aborting!';",
+                " /opt/aws/bin/cfn-signal -e 1",
+                "  --stack ",
+                { "Ref": "AWS::StackName" },
+                "  --resource WatchmakerAutoScalingGroup",
+                {
+                  "Fn::If": [
+                    "AssignInstanceRole",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          " --role ",
+                          { "Ref": "InstanceRole" }
+                        ]
+                      ]
+                    },
+                    ""
+                  ]
+                },
+                {
+                  "Fn::If": [
+                    "UseCfnUrl",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          " --url ",
+                          { "Ref": "CfnEndpointUrl" }
+                        ]
+                      ]
+                    },
+                    ""
+                  ]
+                },
+                "  --region ",
+                { "Ref": "AWS::Region" },
+                ";",
+                " exit 1",
+                " )\n\n",
+                "--===============3585321300151562773==--"
               ]
             ]
           }
