@@ -41,6 +41,7 @@ then
    echo "Git stagining-area already exists"
 else
    printf "Creating central location for Git-hosted resources... "
+   # shellcheck disable=SC2015
    install -d -m 000700 ${SCRIPTHOME}/git && echo "Success" || \
      err_exit "Failed creating git staging-area."
 fi
