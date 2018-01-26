@@ -1,0 +1,564 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3, IAM, EC2 and ELB templates.",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Child Templates"
+          },
+          "Parameters": [
+            "SecurityGroupTemplate",
+            "BucketTemplate",
+            "IamRoleTemplate",
+            "Ec2Template",
+            "ElbTemplate"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Instance Config"
+          },
+          "Parameters": [
+            "AmiId",
+            "InstanceType",
+            "ServerHostname",
+            "DnsSuffix",
+            "ProvisionUser",
+            "KeyPairName",
+            "AdminPubkeyURL",
+            "SubnetId",
+            "NoPublicIp",
+            "AppVolumeDevice",
+            "AppVolumeMountPath",
+            "AppVolumeSize",
+            "AppVolumeType",
+            "NoUpdates",
+            "NoReboot",
+            "EpelRepo",
+            "PyStache",
+            "PipRpm",
+            "PipIndexFips"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins Setup"
+          },
+          "Parameters": [
+            "JenkinsRepoURL",
+            "JenkinsRepoKeyURL",
+            "JenkinsOsPrepScriptUrl",
+            "JenkinsAppinstallScriptUrl",
+            "JenkinsBackupBucket",
+            "BackupFolder"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Proxy (ELB)"
+          },
+          "Parameters": [
+            "ProxyPrettyName",
+            "HaSubnets",
+            "JenkinsListenPort",
+            "JenkinsServicePort",
+            "JenkinsAgentPort",
+            "JenkinsListenerCert"
+          ]
+        },
+            "ServiceTld",
+        {
+          "Label": {
+            "default": "Miscellaneous"
+          },
+          "Parameters": [
+            "ServiceTld",
+            "TargetVPC",
+            "RolePrefix"
+          ]
+        }
+      ]
+    }
+  },
+  "Outputs": {
+    "JenkinsControlNode": {
+      "Description": "Raw FQDN of ELB pointing to Jenkins master",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-ELB-FQDN" }
+      },
+      "Value": { "Fn::GetAtt": [ "ElbRes", "Outputs.JenkinsElbFqdn" ] }
+    },
+    "JenkinsIamRoleName": {
+      "Description": "Privilege-role assined to master node",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleName"}
+      },
+      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRole" ] }
+    },
+    "JenkinsIamRoleProfile": {
+      "Description": "Privilege-role assined to master node",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile"}
+      },
+      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ] }
+    },
+    "JenkinsS3Bucket": {
+      "Description": "Name of S3 bucket used for storing backup data.",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-BackupBucket" }
+      },
+      "Value": { "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ] }
+    },
+    "JenkinsVpcId": {
+      "Description": "VPC-ID that Jenkins stack is deployed into.",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-VpcId" }
+      },
+      "Value": { "Ref": "TargetVPC" }
+    }
+  },
+  "Parameters": {
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL the file containing the admin users' SSH public keys.",
+      "Type": "String"
+    },
+    "AmiId": {
+      "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
+      "Description": "ID of the AMI to launch",
+      "Type": "String"
+    },
+    "AppVolumeDevice": {
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "Default": "false",
+      "Description": "Whether to mount an extra EBS volume. Leave as default (\"false\") to launch without an extra application volume",
+      "Type": "String"
+    },
+    "AppVolumeMountPath": {
+      "AllowedPattern": "/.*",
+      "Default": "/var/lib/jenkins",
+      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "AppVolumeSize": {
+      "ConstraintDescription": "Must be between 1GB and 16384GB.",
+      "Default": "1",
+      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "MaxValue": "16384",
+      "MinValue": "1",
+      "Type": "Number"
+    },
+    "AppVolumeType": {
+      "AllowedValues": [
+        "gp2",
+        "io1",
+        "sc1",
+        "st1",
+        "standard"
+      ],
+      "Default": "gp2",
+      "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "BackendTimeout": {
+      "Default": "600",
+      "Description": "How long - in seconds - back-end connection may be idle before attempting session-cleanup",
+      "MinValue": "60",
+      "MaxValue": "3600",
+      "Type": "Number"
+    },
+    "BackupFolder": {
+      "AllowedPattern": "^[a-zA-Z]*[a-z0-9-]*[a-zA-Z]*$",
+      "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
+    "BucketTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
+      "Type": "String"
+    },
+    "DesiredCapacity": {
+      "Default": "1",
+      "Description": "Desired number of instances in the Autoscaling Group",
+      "Type": "Number"
+    },
+    "DnsSuffix": {
+      "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
+      "Type": "String"
+    },
+    "Ec2Template": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins master node.",
+      "Type": "String"
+    },
+    "ElbTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins ELB.",
+      "Type": "String"
+    },
+    "EpelRepo": {
+      "AllowedPattern": "^[a-z][a-z0-9-]*$",
+      "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
+      "Default": "epel",
+      "Description": "Name of network's EPEL repo.",
+      "Type": "String"
+    },
+    "HaSubnets": {
+      "Description": "Select three subnets - each from different Availability Zones.",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "IamRoleTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins IAM instance role.",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "t2.xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "c5.large",
+        "c5.xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "c4.large",
+        "c4.xlarge"
+      ],
+      "Default": "t2.micro",
+      "Description": "Amazon EC2 instance type",
+      "Type": "String"
+    },
+    "JenkinsAgentPort": {
+      "Description": "TCP Port number that the Jenkins agent-hosts connect through.",
+      "MaxValue": "65535",
+      "MinValue": "1025",
+      "Type": "Number"
+    },
+    "JenkinsAppinstallScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of Jenkins application-installer script.",
+      "Type": "String"
+    },
+    "JenkinsBackupBucket": {
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+      "Description": "S3 Bucket to host backup files (if left blank, a value will be computed).",
+      "Type": "String"
+    },
+    "JenkinsListenPort": {
+      "Default": "443",
+      "Description": "TCP Port number that the Jenkins ELB forwards from.",
+      "MaxValue": "65535",
+      "MinValue": "1",
+      "Type": "Number"
+    },
+    "JenkinsListenerCert": {
+      "Default": "",
+      "Description": "Name of ACM-managed SSL Certificate to protect public listener.",
+      "Type": "String"
+    },
+    "JenkinsOsPrepScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OS-preparation script.",
+      "Type": "String"
+    },
+    "JenkinsPassesSsh": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Whether to allow SSH passthrough to Jenkins master.",
+      "Type": "String"
+    },
+    "JenkinsRepoKeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://jenkins-ci.org/redhat/jenkins-ci.org.key",
+      "Description": "URL to the Jenkins yum-repository GPG key",
+      "Type": "String"
+    },
+    "JenkinsRepoURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "http://pkg.jenkins.io/redhat",
+      "Description": "URL to the Jenkins yum-repository",
+      "Type": "String"
+    },
+    "JenkinsRpmName": {
+      "Description": "Name of Jenkins RPM to install. Include release version if 'other-than-latest' is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc.",
+      "Type": "String",
+      "AllowedPattern": "^jenkins.*$"
+    },
+    "JenkinsServicePort": {
+      "Default": "8080",
+      "Description": "TCP Port number that the Jenkins host forwards to.",
+      "MaxValue": "65535",
+      "MinValue": "1025",
+      "Type": "Number"
+    },
+    "KeyPairName": {
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "String"
+    },
+    "NoPublicIp": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "true",
+      "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
+      "Type": "String"
+    },
+    "NoReboot": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
+      "Type": "String"
+    },
+    "NoUpdates": {
+      "AllowedValues": [
+        "false",
+        "true"
+      ],
+      "Default": "false",
+      "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, SystemPrep _always_ installs updates)",
+      "Type": "String"
+    },
+    "PipIndexFips": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://pypi.org/simple/",
+      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
+      "Type": "String"
+    },
+    "PipRpm": {
+      "Default": "python2-pip",
+      "Description": "Name of preferred pip RPM.",
+      "Type": "String"
+    },
+    "ProtectedSubnets": {
+      "Description": "Select three subnets - each from different Availability Zones.",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "ProvisionUser": {
+      "AllowedPattern": "[a-z0-9]{6,12}+",
+      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
+      "Default": "autojenk",
+      "Description": "Default login user account name.",
+      "Type": "String"
+    },
+    "ProxyPrettyName": {
+      "Description": "A short, human-friendly label to assign to the ELB (no capital letters).",
+      "Type": "String"
+    },
+    "PyStache": {
+      "Default": "pystache",
+      "Description": "Name of preferred pystache RPM.",
+      "Type": "String"
+    },
+    "RolePrefix": {
+      "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
+      "Type": "String"
+    },
+    "SecurityGroupTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins network security-groups.",
+      "Type": "String"
+    },
+    "ServerHostname": {
+      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
+      "Default": "jenkins-master",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
+      "Type": "String"
+    },
+    "ServiceTld": {
+      "Default": "amazonaws.com",
+      "Description": "TLD of the IAMable service-name.",
+      "Type": "String"
+    },
+    "TargetVPC": {
+      "AllowedPattern": "^vpc-[0-9a-f]*$",
+      "Description": "ID of the VPC to deploy Jenkins components into.",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "ToggleCfnInitUpdate": {
+      "AllowedValues": [
+        "A",
+        "B"
+      ],
+      "Default": "A",
+      "Description": "A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence",
+      "Type": "String"
+    },
+    "ToggleNewInstances": {
+      "AllowedValues": [
+        "A",
+        "B"
+      ],
+      "Default": "A",
+      "Description": "A/B toggle that forces a change to instance userdata, triggering new instances via the Autoscale update policy",
+      "Type": "String"
+    },
+    "WatchmakerEnvironment": {
+      "AllowedValues": [
+        "",
+        "dev",
+        "test",
+        "prod"
+      ],
+      "Default": "",
+      "Description": "Environment in which the instance is being deployed",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Ec2Asg": {
+      "Properties": {
+        "Parameters": {
+          "AdminPubkeyURL": { "Ref": "AdminPubkeyURL" },
+          "AmiId": { "Ref": "AmiId" },
+          "AppVolumeDevice": { "Ref": "AppVolumeDevice" },
+          "AppVolumeMountPath": { "Ref": "AppVolumeMountPath" },
+          "AppVolumeSize": { "Ref": "AppVolumeSize" },
+          "AppVolumeType": { "Ref": "AppVolumeType" },
+          "AsgLoadBalancer": {
+            "Fn::GetAtt": [ "ElbRes", "Outputs.JenkinsElbId" ]
+          },
+          "BackupBucket": {
+            "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ]
+          },
+          "BackupFolder": { "Ref": "BackupFolder" },
+          "CfnBootstrapUtilsUrl": "",
+          "CfnEndpointUrl": {
+            "Fn::Join": [
+              ".",
+              [
+                "https://cloudformation",
+                { "Ref": "AWS::Region" },
+                { "Ref": "ServiceTld" }
+              ]
+            ]
+          },
+          "CfnGetPipUrl": "",
+          "DesiredCapacity": { "Ref": "DesiredCapacity" },
+          "DnsSuffix": { "Ref": "DnsSuffix" },
+          "EpelRepo": { "Ref": "EpelRepo" },
+          "InstanceRoleName": {
+            "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRole" ]
+          },
+          "InstanceRoleProfile": {
+            "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ]
+          },
+          "InstanceType": { "Ref": "InstanceType" },
+          "JenkinsAppinstallScriptUrl": { "Ref": "JenkinsAppinstallScriptUrl" },
+          "JenkinsOsPrepScriptUrl": { "Ref": "JenkinsOsPrepScriptUrl" },
+          "JenkinsRepoKeyURL": { "Ref": "JenkinsRepoKeyURL" },
+          "JenkinsRepoURL": { "Ref": "JenkinsRepoURL" },
+          "JenkinsRpmName": { "Ref": "JenkinsRpmName" },
+          "KeyPairName": { "Ref": "KeyPairName" },
+          "MaxCapacity": "2",
+          "MinCapacity": "0",
+          "NoPublicIp": { "Ref": "NoPublicIp" },
+          "NoReboot": { "Ref": "NoReboot" },
+          "NoUpdates": { "Ref": "NoUpdates" },
+          "PipIndexFips": { "Ref": "PipIndexFips" },
+          "PipRpm": { "Ref": "PipRpm" },
+          "ProvisionUser": { "Ref": "ProvisionUser" },
+          "PyStache": { "Ref": "PyStache" },
+          "SecurityGroupIds": { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] },
+          "ServerHostname": { "Ref": "ServerHostname" },
+          "SubnetIds": {
+            "Fn::Join": [
+              ",",
+              { "Ref": "ProtectedSubnets" }
+            ]
+          },
+          "ToggleCfnInitUpdate": { "Ref": "ToggleCfnInitUpdate" },
+          "ToggleNewInstances": { "Ref": "ToggleNewInstances" },
+          "WatchmakerAdminGroups": "",
+          "WatchmakerAdminUsers": "",
+          "WatchmakerConfig": "",
+          "WatchmakerEnvironment": { "Ref": "WatchmakerEnvironment" },
+          "WatchmakerOuPath": "",
+          "WatchmakerS3Source": "false"
+        },
+        "TemplateURL": { "Ref": "Ec2Template" }
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "ElbRes": {
+      "Properties": {
+        "Parameters": {
+          "BackendTimeout": { "Ref": "BackendTimeout" },
+          "HaSubnets": {
+            "Fn::Join": [
+              ",",
+              { "Ref": "HaSubnets" }
+            ]
+          },
+          "JenkinsAgentPort": { "Ref": "JenkinsAgentPort" },
+          "JenkinsListenerCert": { "Ref": "JenkinsListenerCert" },
+          "JenkinsListenPort": { "Ref": "JenkinsListenPort" },
+          "JenkinsServicePort": { "Ref": "JenkinsServicePort" },
+          "JenkinsPassesSsh": { "Ref": "JenkinsPassesSsh" },
+          "ProxyPrettyName": { "Ref": "ProxyPrettyName" },
+          "SecurityGroupIds": {
+            "Fn::Join": [
+              ",",
+              [
+                { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] }
+              ]
+            ]
+          }
+        },
+        "TemplateURL": { "Ref": "ElbTemplate" }
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "IamRes": {
+      "Properties": {
+        "Parameters": {
+          "JenkinsBucketArn": {
+            "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketArn" ]
+          },
+          "RolePrefix": { "Ref": "RolePrefix" },
+          "ServiceTld": { "Ref": "ServiceTld" }
+        },
+        "TemplateURL": { "Ref": "IamRoleTemplate" },
+        "TimeoutInMinutes": "10"
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "S3Res": {
+      "Properties": {
+        "Parameters": {
+          "JenkinsBackupBucket": { "Ref": "JenkinsBackupBucket" }
+        },
+        "TemplateURL": { "Ref": "BucketTemplate" },
+        "TimeoutInMinutes": "10"
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "SgRes": {
+      "Properties": {
+        "Parameters": {
+          "JenkinsAgentPort": { "Ref": "JenkinsAgentPort" },
+          "TargetVPC": { "Ref": "TargetVPC" }
+        },
+        "TemplateURL": { "Ref": "SecurityGroupTemplate" },
+        "TimeoutInMinutes": "10"
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    }
+  }
+}

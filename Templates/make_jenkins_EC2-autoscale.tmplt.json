@@ -12,7 +12,14 @@
       ]
     },
     "CreateAppVolume": {
-      "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "true" ]
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "" ] }
+      ]
+    },
+    "ExecuteAppScript": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "JenkinsAppinstallScriptUrl" }, "" ] }
+      ]
     },
     "InstallUpdates": {
       "Fn::Not": [
@@ -67,24 +74,14 @@
         { "Fn::Equals": [ { "Ref": "CfnEndpointUrl" }, "" ] }
       ]
     },
-    "UseChainScript": {
+    "UseEnvironment": {
       "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "ChainScriptUrl" }, "" ] }
+        { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
       ]
     },
     "UseKeyPair": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
-      ]
-    },
-    "UseRepoKey": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "GitRepoKeyUrl" }, "" ] }
-      ]
-    },
-    "UseEnvironment": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
       ]
     },
     "UseOuPath": {
@@ -103,7 +100,7 @@
       ]
     }
   },
-  "Description": "This template creates an Autoscaling Group and Launch Configuration that deploys Linux instances with Watchmaker, which applies the DISA STIG.",
+  "Description": "This template creates an Autoscaling Group and Launch Configuration to deploy a STIG-hardened EL7 Linux instance to host the Jenkins master-node service/application.",
   "Mappings": {
     "InstanceTypeCapabilities": {
       "IsGenFive": {
@@ -124,8 +121,8 @@
             "default": "EC2 Instance Configuration"
           },
           "Parameters": [
-            "Hostname",
-            "Domainname",
+            "ServerHostname",
+            "DnsSuffix",
             "AmiId",
             "InstanceType",
             "ProvisionUser",
@@ -135,9 +132,9 @@
             "NoPublicIp",
             "NoReboot",
             "NoUpdates",
-            "SecurityGroupIds",
             "InstanceRoleName",
-            "InstanceRoleProfile"
+            "InstanceRoleProfile",
+            "SecurityGroupIds"
           ]
         },
         {
@@ -145,16 +142,30 @@
             "default": "EC2 Watchmaker Configuration"
           },
           "Parameters": [
+            "EpelRepo",
+            "PipRpm",
+            "PyStache",
+            "PipIndexFips",
             "WatchmakerConfig",
             "WatchmakerEnvironment",
             "WatchmakerOuPath",
             "WatchmakerAdminGroups",
             "WatchmakerAdminUsers",
-            "WatchmakerS3Source",
-            "EpelRepo",
-            "PipRpm",
-            "PyStache",
-            "PypiIndexUrl"
+            "WatchmakerS3Source"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins Application Configuration"
+          },
+          "Parameters": [
+            "JenkinsOsPrepScriptUrl",
+            "JenkinsRpmName",
+            "JenkinsRepoURL",
+            "JenkinsRepoKeyURL",
+            "JenkinsAppinstallScriptUrl",
+            "BackupBucket",
+            "BackupFolder"
           ]
         },
         {
@@ -185,23 +196,9 @@
           "Parameters": [
             "CfnEndpointUrl",
             "CfnGetPipUrl",
+            "CfnBootstrapUtilsUrl",
             "ToggleCfnInitUpdate",
             "ToggleNewInstances"
-          ]
-        },
-        {
-          "Label": {
-            "default": "Agent Software Configuration"
-          },
-          "Parameters": [
-            "JenkinsUserScriptUrl",
-            "JenkinsMaster",
-            "JenkinsAgentName",
-            "AgentAuthToken",
-            "NpmSetupUri",
-            "ZapAgentUrl",
-            "ChainScriptUrl",
-            "GitRepoKeyUrl"
           ]
         }
       ],
@@ -216,13 +213,9 @@
     }
   },
   "Parameters": {
-    "AdminPubkeyURL":{
-      "Description": "URL the file containing the admin group's SSH public keys.",
-      "Type": "String",
-      "AllowedPattern": "^$|^http://.*$|^https://.*$"
-    },
-    "AgentAuthToken": {
-      "Description": "Authentication token-string used for JNLP config.",
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL the file containing the admin users' SSH public keys.",
       "Type": "String"
     },
     "AmiId": {
@@ -241,8 +234,8 @@
     },
     "AppVolumeMountPath": {
       "AllowedPattern": "/.*",
-      "Default": "/opt/data",
-      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
+      "Default": "/var/lib/jenkins",
+      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is set to \"false\"",
       "Type": "String"
     },
     "AppVolumeSize": {
@@ -265,6 +258,26 @@
       "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "Type": "String"
     },
+    "AsgLoadBalancer": {
+      "Description": "Attachable-ID of ELB to attach scaling-group to.",
+      "Type": "String"
+    },
+    "BackupBucket": {
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+      "Description": "S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
+    "BackupFolder": {
+      "AllowedPattern": "^[a-zA-Z]*[a-z0-9-]*[a-zA-Z]*$",
+      "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
+    "CfnBootstrapUtilsUrl": {
+      "AllowedPattern": "^$|^http[s]?://.*\\.tar\\.gz$",
+      "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
+      "Description": "URL to aws-cfn-bootstrap-latest.tar.gz",
+      "Type": "String"
+    },
     "CfnEndpointUrl": {
       "AllowedPattern": "^$|^http[s]?://.*$",
       "Default": "https://cloudformation.us-east-1.amazonaws.com",
@@ -272,15 +285,9 @@
       "Type": "String"
     },
     "CfnGetPipUrl": {
-      "AllowedPattern": "^http[s]?://.*\\.py$",
+      "AllowedPattern": "^$|^http[s]?://.*\\.py$",
       "Default": "https://bootstrap.pypa.io/get-pip.py",
       "Description": "URL to get-pip.py",
-      "Type": "String"
-    },
-    "ChainScriptUrl": {
-      "AllowedPattern": "^$|^http[s]?://.*$|s3://.*$",
-      "Default": "",
-      "Description": "(Optional) URL to a \"chain\" script - a script to install add-ons not part of the core agent install.",
       "Type": "String"
     },
     "DesiredCapacity": {
@@ -288,9 +295,9 @@
       "Description": "Desired number of instances in the Autoscaling Group",
       "Type": "Number"
     },
-    "Domainname": {
+    "DnsSuffix": {
       "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
-      "Description": "Suffix for Jenkins's hostname and DNS record",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
       "Type": "String"
     },
     "EpelRepo": {
@@ -298,29 +305,6 @@
       "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
       "Default": "epel",
       "Description": "Name of network's EPEL repo.",
-      "Type": "String"
-    },
-    "GitRepoKeyUrl": {
-      "AllowedPattern": "^$|^http[s]?://.*$|s3://.*$",
-      "Default": "",
-      "Description": "(Optional) If hosting the chain-script (or its sub-scripts) in an authenticated git-repos, provide the URL of the git repository-key",
-      "Type": "String"
-    },
-    "Hostname": {
-      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
-      "Description": "Node-name for Jenkins's hostname and DNS record",
-      "Type": "String"
-    },
-    "JenkinsAgentName": {
-      "Description": "Name assigned to this Jenkins build-executor.",
-      "Type": "String"
-    },
-    "JenkinsMaster": {
-      "Description": "FQDN of Jenkins master node",
-      "Type": "String"
-    },
-    "JenkinsUserScriptUrl": {
-      "Description": "URL of Jenkins Agent setup script",
       "Type": "String"
     },
     "InstanceRoleName": {
@@ -353,6 +337,33 @@
       "Description": "Amazon EC2 instance type",
       "Type": "String"
     },
+    "JenkinsAppinstallScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of Jenkins application-installer script.",
+      "Type": "String"
+    },
+    "JenkinsOsPrepScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OS-preparation script.",
+      "Type": "String"
+    },
+    "JenkinsRepoKeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://jenkins-ci.org/redhat/jenkins-ci.org.key",
+      "Description": "URL to the Jenkins yum-repository GPG key",
+      "Type": "String"
+    },
+    "JenkinsRepoURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "http://pkg.jenkins.io/redhat",
+      "Description": "URL to the Jenkins yum-repository",
+      "Type": "String"
+    },
+    "JenkinsRpmName": {
+      "Description": "Name of Jenkins RPM to install. Include release version if 'other-than-latest' is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc.",
+      "Type": "String",
+      "AllowedPattern": "^jenkins.*$"
+    },
     "KeyPairName": {
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
       "Type": "String"
@@ -366,12 +377,6 @@
       "Default": "1",
       "Description": "Minimum number of instances in the Autoscaling Group",
       "Type": "Number"
-    },
-    "NpmSetupUri": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Default": "https://rpm.nodesource.com/setup_8.x",
-      "Description": "URL of NPM setup script.",
-      "Type": "String"
     },
     "NoPublicIp": {
       "AllowedValues": [
@@ -400,6 +405,12 @@
       "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
       "Type": "String"
     },
+    "PipIndexFips": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://pypi.org/simple/",
+      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
+      "Type": "String"
+    },
     "PipRpm": {
       "Default": "python2-pip",
       "Description": "Name of preferred pip RPM.",
@@ -408,14 +419,8 @@
     "ProvisionUser": {
       "AllowedPattern": "[a-z0-9]{6,12}+",
       "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
-      "Default": "jenkagent",
-      "Description": "Default login user account name (do not use \"jenkins\").",
-      "Type": "String"
-    },
-    "PypiIndexUrl": {
-      "AllowedPattern": "^http[s]?://.*$",
-      "Default": "https://pypi.org/simple",
-      "Description": "URL to the PyPi Index",
+      "Default": "autojenk",
+      "Description": "Default login user account name.",
       "Type": "String"
     },
     "PyStache": {
@@ -426,6 +431,12 @@
     "SecurityGroupIds": {
       "Description": "List of security groups to apply to the instance(s)",
       "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "ServerHostname": {
+      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
+      "Default": "jenkins-master",
+      "Description": "Suffix for Jenkins' hostname and DNS record",
+      "Type": "String"
     },
     "SubnetIds": {
       "Description": "List of subnets to associate to the Autoscaling Group",
@@ -490,15 +501,10 @@
       "Default": "false",
       "Description": "Flag that tells watchmaker to use its instance role to retrieve watchmaker content from S3",
       "Type": "String"
-    },
-    "ZapAgentUrl": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL of OWASP ZAP archive-file.",
-      "Type": "String"
     }
   },
   "Resources": {
-    "JenkAgentAsg": {
+    "JenkinsMasterASG": {
       "CreationPolicy": {
         "ResourceSignal": {
           "Count": { "Ref": "DesiredCapacity" },
@@ -507,7 +513,8 @@
       },
       "Properties": {
         "DesiredCapacity": { "Ref": "DesiredCapacity" },
-        "LaunchConfigurationName": { "Ref": "JenkAgentLC" },
+        "LaunchConfigurationName": { "Ref": "JenkinsMasterLC" },
+        "LoadBalancerNames": [ { "Ref": "AsgLoadBalancer" } ],
         "MaxSize": { "Ref": "MaxCapacity" },
         "MinSize": { "Ref": "MinCapacity" },
         "Tags": [
@@ -536,16 +543,21 @@
         }
       }
     },
-    "JenkAgentLC": {
+    "JenkinsMasterLC": {
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "admkey-install": {
+            "commands": {
+              "10-admkey-install": {
+                "command": "bash -xe /etc/cfn/scripts/admkey.sh"
+              }
+            },
             "files": {
               "/etc/cfn/files/adminkeys.pub": {
-                "source": { "Ref": "AdminPubkeyURL" },
                 "group": "root",
                 "mode": "000600",
-                "owner": "root"
+                "owner": "root",
+                "source": { "Ref": "AdminPubkeyURL" }
               },
               "/etc/cfn/scripts/admkey.sh": {
                 "content": {
@@ -570,25 +582,20 @@
                 "mode": "000700",
                 "owner": "root"
               }
-            },
-            "commands": {
-              "1-admkey-install": {
-                "command": "bash -xe /etc/cfn/scripts/admkey.sh"
-              }
             }
           },
-          "chain-script": {
-            "commands": {
-              "1-run-chain-script": {
-                "command": "bash -e /etc/cfn/scripts/chain-script"
+          "app-install": {
+            "files": {
+              "/etc/cfn/scripts/appinstall.sh": {
+                "source": { "Ref": "JenkinsAppinstallScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
               }
             },
-            "files": {
-              "/etc/cfn/scripts/chain-script": {
-                "source": { "Ref": "ChainScriptUrl" },
-                "group": "root",
-                "mode": "000750",
-                "owner": "root"
+            "commands": {
+              "1-appinstall-script": {
+                "command": "bash -xe /etc/cfn/scripts/appinstall.sh"
               }
             }
           },
@@ -596,22 +603,16 @@
             "launch": [
               "setup",
               "admkey-install",
-              {
-                "Fn::If": [
-                  "UseRepoKey",
-                  "ssh-client-prep",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
               "watchmaker-install",
               "watchmaker-launch",
-              "yum-addons",
-              "install-jenkins-agent",
-              "systemd-jenkins-agent",
+              "osprep",
               {
                 "Fn::If": [
-                  "UseChainScript",
-                  "chain-script",
+                  "ExecuteAppScript",
+                  [
+                    "app-install",
+                    "cron-setup"
+                  ],
                   { "Ref": "AWS::NoValue" }
                 ]
               },
@@ -626,14 +627,6 @@
             ],
             "update": [
               "setup",
-              "admkey-install",
-              {
-                "Fn::If": [
-                  "UseRepoKey",
-                  "ssh-client-prep",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
               {
                 "Fn::If": [
                   "InstallUpdates",
@@ -643,13 +636,14 @@
               },
               "watchmaker-install",
               "watchmaker-update",
-              "yum-addons",
-              "install-jenkins-agent",
-              "systemd-jenkins-agent",
+              "osprep",
               {
                 "Fn::If": [
-                  "UseChainScript",
-                  "chain-script",
+                  "ExecuteAppScript",
+                  [
+                    "app-install",
+                    "cron-setup"
+                  ],
                   { "Ref": "AWS::NoValue" }
                 ]
               },
@@ -663,6 +657,32 @@
               }
             ]
           },
+          "cron-setup": {
+            "files": {
+              "/etc/cron.d/jenkins-backups": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "# Daily backup of JENKINS_HOME to S3\n",
+                      "0 23 * * * jenkins /usr/bin/aws ",
+                      "s3 sync --delete --quiet /var/lib/jenkins s3://",
+                      { "Ref": "BackupBucket" },
+                      "/Backups/daily/$(date '+\\%A')/\n",
+                      "# Sync JENKINS_HOME to S3 for re-deployments\n",
+                      "*/20 * * * *  jenkins /usr/bin/aws ",
+                      "s3 sync --delete --quiet /var/lib/jenkins s3://",
+                      { "Ref": "BackupBucket" },
+                      "/Backups/sync/JENKINS_HOME/\n"
+                    ]
+                  ]
+                },
+                "group"   : "root",
+                "mode"    : "000400",
+                "owner"   : "root"
+              }
+            }
+          },
           "finalize": {
             "commands": {
               "10-signal-success": {
@@ -673,7 +693,7 @@
                       "/opt/aws/bin/cfn-signal -e 0",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource JenkAgentAsg",
+                      " --resource JenkinsMasterASG",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -714,33 +734,25 @@
               }
             }
           },
-          "install-jenkins-agent": {
-            "users" : {
-              "jenkins" : {
-                "homeDir" : "/var/jenkins"
-              }
-            },
-            "files": {
-              "/tmp/user_script.sh": {
-                "source": { "Ref": "JenkinsUserScriptUrl" } ,
-                "group": "root",
-                "mode": "000755",
-                "owner": "root"
-              }
-            },
-            "commands": {
-              "1-jenkins-home-perm": {
-                "command": "chown -R jenkins:jenkins /var/jenkins"
-              },
-              "2-agent-install": {
-                "command": "sudo -H -u jenkins bash -xe /tmp/user_script.sh"
-              }
-            }
-          },
           "install-updates": {
             "commands": {
               "10-install-updates": {
                 "command": "yum -y update"
+              }
+            }
+          },
+          "osprep": {
+            "files": {
+              "/etc/cfn/scripts/osprep.sh": {
+                "source": { "Ref": "JenkinsOsPrepScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-osprep-script": {
+                "command": "bash -xe /etc/cfn/scripts/osprep.sh"
               }
             }
           },
@@ -753,6 +765,48 @@
           },
           "setup": {
             "files": {
+              "/etc/cfn/Jenkins.envs": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "JENKINS_HOME_PATH=",
+                      { "Ref": "AppVolumeMountPath" },
+                      "\n",
+                      "JENKINS_BACKUP_BUCKET=",
+                      { "Ref": "BackupBucket" },
+                      "\n",
+                      "JENKINS_BACKUP_FOLDER=",
+                      { "Ref": "BackupFolder" },
+                      "\n",
+                      "JENKINS_APPINSTALL_SCRIPT=",
+                      { "Ref": "JenkinsAppinstallScriptUrl" },
+                      "\n",
+                      "JENKINS_OSPREP_SCRIPT=",
+                      { "Ref": "JenkinsOsPrepScriptUrl" },
+                      "\n",
+                      "JENKINS_CFN_ENDPOINT=",
+                      { "Ref": "CfnEndpointUrl" },
+                      "\n",
+                      "JENKINS_YUM_URL=",
+                      { "Ref": "JenkinsRepoURL" },
+                      "\n",
+                      "JENKINS_YUM_REPOKEY=",
+                      { "Ref": "JenkinsRepoKeyURL" },
+                      "\n",
+                      "JENKINS_EPEL_REPO=",
+                      { "Ref": "EpelRepo" },
+                      "\n",
+                      "JENKINS_RPM_NAME=",
+                      { "Ref": "JenkinsRpmName" },
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
               "/etc/cfn/cfn-hup.conf": {
                 "content": {
                   "Fn::Join": [
@@ -815,11 +869,11 @@
                     [
                       "[cfn-auto-reloader-hook]\n",
                       "triggers=post.update\n",
-                      "path=Resources.JenkAgentLC.Metadata\n",
+                      "path=Resources.JenkinsMasterLC.Metadata\n",
                       "action=/opt/aws/bin/cfn-init -v -c update",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource JenkAgentLC",
+                      " --resource JenkinsMasterLC",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -868,7 +922,7 @@
                     [
                       "#!/bin/bash\n\n",
                       "PYPI_URL=",
-                      { "Ref": "PypiIndexUrl" },
+                      { "Ref": "PipIndexFips" },
                       "\n",
                       "pip install --index-url=\"$PYPI_URL\" wheel==0.29.0\n",
                       "pip install",
@@ -881,29 +935,23 @@
                 "mode": "000700",
                 "owner": "root"
               },
-              "/etc/cfn/JenkinsAgent.envs": {
+              "/etc/yum.repos.d/jenkins.repo": {
                 "content": {
                   "Fn::Join": [
                     "",
                     [
-                      "JENKINS_WORKDIR=",
-                      { "Ref": "AppVolumeMountPath" },
+                      "[jenkins]\n",
+                      "gpgkey = ",
+                      { "Ref": "JenkinsRepoKeyURL" },
                       "\n",
-                      "JENKINS_MASTER=",
-                      { "Ref": "JenkinsMaster" },
+                      "enabled = 1\n",
+                      "baseurl = ",
+                      { "Ref": "JenkinsRepoURL" },
                       "\n",
-                      "JENKINS_AUTH_TOKEN=",
-                      { "Ref": "AgentAuthToken" },
-                      "\n"
+                      "name = Jenkins CI service-repository\n"
                     ]
                   ]
                 },
-                "group": "root",
-                "mode": "000444",
-                "owner": "root"
-              },
-              "/tmp/ZAP_Linux.tar.gz": {
-                "source": { "Ref": "ZapAgentUrl" },
                 "group": "root",
                 "mode": "000444",
                 "owner": "root"
@@ -919,83 +967,6 @@
                     "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
                   ]
                 }
-              }
-            }
-          },
-          "ssh-client-prep": {
-            "files": {
-              "/root/.ssh/id_rsa": {
-                "source": { "Ref": "GitRepoKeyUrl" },
-                "group": "root",
-                "mode": "000400",
-                "owner": "root"
-              },
-              "/root/.ssh/config": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "Host *\n",
-                      "CheckHostIP false\n",
-                      "UserKnownHostsFile /dev/null\n",
-                      "StrictHostKeyChecking no\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000400",
-                "owner": "root"
-              }
-            }
-          },
-          "systemd-jenkins-agent":{
-            "files": {
-              "/etc/systemd/system/jenkins-agent.service": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "[Unit]\n",
-                      "Description=Jenkins Agent Daemon\n",
-                      "Wants=network-online.target\n",
-                      "Requires=network.target\n",
-                      "\n",
-                      "[Service]\n",
-                      "ExecStartPre=/bin/sleep 15\n",
-                      "ExecStart=/bin/java -jar ",
-                      { "Ref": "AppVolumeMountPath" },
-                      "/slave.jar -jnlpUrl https://",
-                      { "Ref": "JenkinsMaster" },
-                      "/computer/",
-                      { "Ref": "JenkinsAgentName" },
-                      "/slave-agent.jnlp -secret ",
-                      { "Ref": "AgentAuthToken" },
-                      " -workDir \"",
-                      { "Ref": "AppVolumeMountPath" },
-                      "\"\n",
-                      "User=jenkins\n",
-                      "Restart=always\n",
-                      "RestartSec=15\n",
-                      "\n",
-                      "[Install]\n",
-                      "WantedBy=multi-user.target\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000400",
-                "owner": "root"
-              }
-            },
-            "commands": {
-              "1-systemd-reload": {
-                "command": "systemctl daemon-reload"
-              },
-              "2-systemd-agent-start": {
-                "command": "systemctl start jenkins-agent.service"
-              },
-              "3-systemd-agent-enable": {
-                "command": "systemctl enable jenkins-agent.service"
               }
             }
           },
@@ -1020,8 +991,8 @@
                     [
                       "watchmaker --log-level debug",
                       " --log-dir /var/log/watchmaker",
-                      " --exclude-states scap*scan",
                       " --no-reboot",
+                      " --exclude-states scap*scan",
                       {
                         "Fn::If": [
                           "UseWamConfig",
@@ -1218,43 +1189,6 @@
                 }
               }
             }
-          },
-          "yum-addons": {
-            "commands": {
-              "1-yum-npm_repo": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "curl -sL ",
-                      { "Ref": "NpmSetupUri" },
-                      " | bash -\n"
-                    ]
-                  ]
-                }
-              },
-              "2-yum-packages": {
-                "command": {
-                  "Fn::Join": [
-                    " ",
-                    [
-                      "yum --enablerepo=epel install -y @development",
-                      "anaconda",
-                      "ansible",
-                      "fpm2",
-                      "groovy",
-                      "maven",
-                      "python-nose",
-                      "python-nose2",
-                      "ruby",
-                      "ubygems-devel",
-                      "ruby-devel",
-                      "nodejs\n"
-                    ]
-                  ]
-                }
-              }
-            }
           }
         },
         "ToggleCfnInitUpdate": { "Ref": "ToggleCfnInitUpdate" }
@@ -1350,12 +1284,13 @@
                 "  - default\n",
                 "\n",
                 "hostname: ",
-                { "Ref": "Hostname" },
+                { "Ref": "ServerHostname" },
                 "\n",
                 "fqdn: ",
-                { "Ref": "Hostname" },
+                { "Ref": "ServerHostname" },
                 ".",
-                { "Ref": "Domainname" },
+                { "Ref": "DnsSuffix" },
+                "\n",
                 "\n",
                 {
                   "Fn::If": [
@@ -1385,6 +1320,7 @@
                               }
                             ]
                           },
+                          "\n",
                           "\n",
                           "mounts:\n",
                           "- [ ",
@@ -1437,7 +1373,7 @@
                 "   logger -p kern.crit -t UserData \"${1}\"\n",
                 "   /opt/aws/bin/cfn-signal -e 1 --stack ",
                     { "Ref": "AWS::StackName" },
-                    " --resource JenkinsAgent\n",
+                    " --resource JenkinsMasterLC\n",
                 "   exit 1\n",
                 "}\n",
                 "\n",
@@ -1458,6 +1394,14 @@
                  " /usr/lib/python${PYVERS}/site-packages/cfnbootstrap",
                  "/util.py\n",
                 "\n",
+                "# Upgrade pip and setuptools\n",
+                "PYPI_URL=",
+                { "Ref": "PipIndexFips" },
+                "\n",
+                "pip install",
+                " --index-url=\"$PYPI_URL\"",
+                " --upgrade pip setuptools\n\n",
+                "# Fixup cfn utils\n",
                 "INITDIR=$(find -L /opt/aws/apitools/cfn-init/init -name redhat ",
                 "2> /dev/null || echo /usr/init/redhat)\n",
                 "chmod 775 ${INITDIR}/cfn-hup\n",
@@ -1473,6 +1417,7 @@
                 "  ln -s ${BINDIR}/${SCRIPT} /opt/aws/bin/${SCRIPT} 2> /dev/null || ",
                 "  echo Skipped symbolic link, /opt/aws/bin/${SCRIPT} already exists\n",
                 "done\n\n",
+
                 "# Add cfn-signal to path\n",
                 "hash cfn-signal 2> /dev/null || ",
                 "PATH=\"${PATH}:/usr/local/bin:/opt/aws/bin\"",
@@ -1481,7 +1426,7 @@
                 "/opt/aws/bin/cfn-init -v -c launch",
                 " --stack ",
                 { "Ref": "AWS::StackName" },
-                " --resource JenkAgentLC",
+                " --resource JenkinsMasterLC",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
@@ -1519,7 +1464,7 @@
                 " /opt/aws/bin/cfn-signal -e 1",
                 "  --stack ",
                 { "Ref": "AWS::StackName" },
-                "  --resource JenkAgentAsg",
+                "  --resource JenkinsMasterASG",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
