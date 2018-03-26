@@ -40,6 +40,21 @@
         "Name" : { "Fn::Sub": "${AWS::StackName}-ElbDnsName" }
       },
       "Value": { "Fn::GetAtt": [ "JenkinsPubElb", "DNSName" ] }
+    },
+    "JenkinsElbRawUrl": {
+      "Description": "Raw URL of the ELB fronting the Jenkin service.",
+      "Export": {
+        "Name" : { "Fn::Sub": "${AWS::StackName}-ElbRawUrl" }
+      },
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            { "Fn::GetAtt": [ "JenkinsPubElb", "DNSName" ] }
+          ]
+        ]
+      }
     }
   },
   "Parameters": {

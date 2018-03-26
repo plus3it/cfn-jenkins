@@ -123,4 +123,6 @@ then
    echo "$(cat ${JENKINITTOK})"
    echo "##"
    echo "########################################"
+
+   aws s3 cp "${JENKINITTOK}" s3://"${JENKBKUPBKT}/admin-info/"
 fi

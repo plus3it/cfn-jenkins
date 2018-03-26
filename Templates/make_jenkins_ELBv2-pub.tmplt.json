@@ -45,6 +45,21 @@
         "Name" : { "Fn::Sub": "${AWS::StackName}-AlbTargArn" }
       },
       "Value": { "Ref": "JenkinsPubAlbTgroup" }
+    },
+    "JenkinsAlbRawUrl": {
+      "Description": "Raw URL of the ELB fronting the Jenkin service.",
+      "Export": {
+        "Name" : { "Fn::Sub": "${AWS::StackName}-ElbRawUrl" }
+      },
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            { "Fn::GetAtt": [ "JenkinsPubAlbLoadBalancer", "DNSName" ] }
+          ]
+        ]
+      }
     }
   },
   "Parameters": {
