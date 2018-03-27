@@ -964,7 +964,7 @@
                       "ExecStartPre=/bin/sleep 15\n",
                       "ExecStart=/bin/java -jar ",
                       { "Ref": "AppVolumeMountPath" },
-                      "/slave.jar -jnlpUrl https://",
+                      "/agent.jar -jnlpUrl https://",
                       { "Ref": "JenkinsMaster" },
                       "/computer/",
                       { "Ref": "JenkinsAgentName" },
