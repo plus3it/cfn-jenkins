@@ -47,9 +47,9 @@ fi
 printf 'Re-rooting to %s... ' "${WORKDIR}"
 cd ${WORKDIR} && echo '' || \
   err_exit "Failed to chdir to ${WORKDIR}"
-printf 'Pulling slave.jar from %s' "${JENKMSTR}"
-curl -OskL https://"${JENKMSTR}"/jnlpJars/slave.jar && echo || \
-  err_exit "Failed to pull slave.jar"
+printf 'Pulling agent.jar from %s' "${JENKMSTR}"
+curl -OskL https://"${JENKMSTR}"/jnlpJars/agent.jar && echo || \
+  err_exit "Failed to pull agent.jar"
 
 # Install the OWASP-ZAP agent-software
 if [[ -f ${ZAPARCHIVE} ]]
