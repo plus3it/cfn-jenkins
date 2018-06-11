@@ -63,9 +63,9 @@ pip3.4 install -U virtualenv pip
 
 
 # Install Python 3.6, pip, and virtualenv using the semi-official "Inline with Upstream Stable" repo
-yum install -y https://centos7.iuscommunity.org/ius-release.rpm
-yum install -y python36u python36u-pip
-pip3.6 install -U virtualenv pip
+# yum install -y https://centos7.iuscommunity.org/ius-release.rpm
+# yum install -y python36u python36u-pip
+# pip3.6 install -U virtualenv pip
 
 
 # Install the OWASP-ZAP agent-software
