@@ -76,7 +76,7 @@ pipeline {
                         sshUserPrivateKey(credentialsId: "${GitCred}", keyFileVariable: 'SSH_KEY_FILE', passphraseVariable: 'SSH_KEY_PASS', usernameVariable: 'SSH_KEY_USER')
                     ]
                 ) {
-                    writeFile file: 'InfraStack.parms.json',
+                    writeFile file: 'agent.instance.parms.json',
                         text: /
                             [
                                 {
@@ -247,7 +247,7 @@ pipeline {
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
-                          --parameters file://<( sed "s#__SIGNED_URL__#${SIGNED_URL//&/\\&}#" InfraStack.parms.json )
+                          --parameters file://<( sed "s#__SIGNED_URL__#${SIGNED_URL//&/\\&}#" agent.instance.parms.json )
 
                         aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot} --region ${AwsRegion}
                     '''

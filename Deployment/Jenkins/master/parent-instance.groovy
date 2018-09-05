@@ -81,7 +81,7 @@ pipeline {
                 git branch: "${GitProjBranch}",
                     credentialsId: "${GitCred}",
                     url: "${GitProjUrl}"
-                writeFile file: 'InfraStack.parms.json',
+                writeFile file: 'parent.instance.parms.json',
                     text: /
                     [
                       {
@@ -292,7 +292,7 @@ pipeline {
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
-                          --parameters file://InfraStack.parms.json
+                          --parameters file://parent.instance.parms.json
 
                         aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot} --region ${AwsRegion}
                     '''
