@@ -288,7 +288,7 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to create stack ${CfnStackRoot}..."
+                        echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
