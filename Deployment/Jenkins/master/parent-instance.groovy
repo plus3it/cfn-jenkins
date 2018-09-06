@@ -290,10 +290,14 @@ pipeline {
                     sh '''#!/bin/bash
                         echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
 <<<<<<< HEAD
+<<<<<<< HEAD
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-${BUILD_NUMBER}" \
 =======
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
 >>>>>>> cfcba87... adding build_number to stack name for master
+=======
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-${BUILD_NUMBER}" \
+>>>>>>> 9344241... adding build_number to stack name for master in all the right places
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://parent.instance.parms.json
