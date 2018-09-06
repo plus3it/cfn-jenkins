@@ -228,7 +228,7 @@ pipeline {
                 }
             }
         }
-        stage ('Launch Jenkins Master Stack') {
+        stage ('Launch Jenkins Agent Instance Stack') {
             options {
                 timeout(time: 1, unit: 'HOURS')
             }
@@ -240,9 +240,6 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash -xe
-                        printf 'export SIGNED_URL="%s"' "\$( aws s3 presign ${ChainScriptUrl} )" > /tmp/SIGNED_URL.txt
-                        source /tmp/SIGNED_URL.txt
-                        printenv | sort
                         echo "Attempting to create stack ${CfnStackRoot}..."
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \

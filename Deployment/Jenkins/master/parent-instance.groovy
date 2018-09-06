@@ -276,7 +276,7 @@ pipeline {
                 }
             }
         }
-        stage ('Launch Jenkins Master Stack') {
+        stage ('Launch Jenkins Master Parent Instance Stack') {
             options {
                 timeout(time: 1, unit: 'HOURS')
             }
