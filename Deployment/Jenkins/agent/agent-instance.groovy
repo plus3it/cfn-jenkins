@@ -241,12 +241,17 @@ pipeline {
                 ) {
                     sh '''#!/bin/bash -xe
 <<<<<<< HEAD
+<<<<<<< HEAD
                         echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-${BUILD_NUMBER}" \
 =======
                         echo "Attempting to create stack ${CfnStackRoot}..."
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
 >>>>>>> 9fc06e9... small updates to stage names
+=======
+                        echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-${BUILD_NUMBER}" \
+>>>>>>> 5b1d1ae... adding build_number to stack name for agent
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://<( sed "s#__SIGNED_URL__#${SIGNED_URL//&/\\&}#" agent.instance.parms.json )
