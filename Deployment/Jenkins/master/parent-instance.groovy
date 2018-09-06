@@ -289,12 +289,12 @@ pipeline {
                 ) {
                     sh '''#!/bin/bash
                         echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-${BUILD_NUMBER}" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://parent.instance.parms.json
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot} --region ${AwsRegion}
+                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-${BUILD_NUMBER} --region ${AwsRegion}
                     '''
                 }
             }
