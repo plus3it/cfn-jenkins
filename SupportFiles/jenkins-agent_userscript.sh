@@ -51,6 +51,8 @@ printf 'Pulling agent.jar from %s' "${JENKMSTR}"
 curl -OskL https://"${JENKMSTR}"/jnlpJars/agent.jar && echo || \
   err_exit "Failed to pull agent.jar"
 
+
+
 # Install the OWASP-ZAP agent-software
 if [[ -f ${ZAPARCHIVE} ]]
 then
