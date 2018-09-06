@@ -240,13 +240,13 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash -xe
-                        echo "Attempting to create stack ${CfnStackRoot}..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}" \
+                        echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-${BUILD_NUMBER}" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://<( sed "s#__SIGNED_URL__#${SIGNED_URL//&/\\&}#" agent.instance.parms.json )
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot} --region ${AwsRegion}
+                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-${BUILD_NUMBER} --region ${AwsRegion}
                     '''
                 }
             }
