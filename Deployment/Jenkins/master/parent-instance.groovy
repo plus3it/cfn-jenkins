@@ -288,6 +288,7 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
+<<<<<<< HEAD:Deployment/Jenkins/master/parent-instance.groovy
 <<<<<<< HEAD
                         echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
 <<<<<<< HEAD
@@ -303,6 +304,10 @@ pipeline {
                         echo "Attempting to create stack ${CfnStackRoot}-ParInst-${BUILD_NUMBER}..."
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ParInst-${BUILD_NUMBER}" \
 >>>>>>> d5a7718... updates travis.yml and pipeline files to address delets and resource types
+=======
+                        echo "Attempting to create stack ${CfnStackRoot}-ParInst-${BUILD_NUMBER}..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ParInst-${BUILD_NUMBER}" \
+>>>>>>> d5a7718dd02ac9b9c03a75ee627638a748aa7e6f:Deployment/Jenkins/master/parent-instance.groovy
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://parent.instance.parms.json

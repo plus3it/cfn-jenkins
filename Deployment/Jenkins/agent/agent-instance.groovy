@@ -240,6 +240,7 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash -xe
+<<<<<<< HEAD:Deployment/Jenkins/agent/agent-instance.groovy
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -257,6 +258,10 @@ pipeline {
                         echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-${BUILD_NUMBER}..."
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Ec2Res-${BUILD_NUMBER}" \
 >>>>>>> d5a7718... updates travis.yml and pipeline files to address delets and resource types
+=======
+                        echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-${BUILD_NUMBER}..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Ec2Res-${BUILD_NUMBER}" \
+>>>>>>> d5a7718dd02ac9b9c03a75ee627638a748aa7e6f:Deployment/Jenkins/agent/agent-instance.groovy
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://<( sed "s#__SIGNED_URL__#${SIGNED_URL//&/\\&}#" agent.instance.parms.json )
