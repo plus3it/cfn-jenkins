@@ -268,10 +268,10 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to delete any active ${CfnStackRoot} stacks... "
-                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}"
+                        echo "Attempting to delete any active ${CfnStackRoot}-ParInst-${BUILD_NUMBER} stacks... "
+                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-ParInst-${BUILD_NUMBER}"
 
-                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot} --region ${AwsRegion}
+                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-ParInst-${BUILD_NUMBER} --region ${AwsRegion}
                     '''
                 }
             }
@@ -288,6 +288,7 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
+<<<<<<< HEAD
                         echo "Attempting to create stack ${CfnStackRoot}-${BUILD_NUMBER}..."
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -298,11 +299,15 @@ pipeline {
 =======
                         aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-${BUILD_NUMBER}" \
 >>>>>>> 9344241... adding build_number to stack name for master in all the right places
+=======
+                        echo "Attempting to create stack ${CfnStackRoot}-ParInst-${BUILD_NUMBER}..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ParInst-${BUILD_NUMBER}" \
+>>>>>>> d5a7718... updates travis.yml and pipeline files to address delets and resource types
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://parent.instance.parms.json
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-ParInst-${BUILD_NUMBER} --region ${AwsRegion}
                     '''
                 }
             }

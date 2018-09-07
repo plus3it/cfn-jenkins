@@ -5,6 +5,7 @@ env:
     - SEGFAULT_SIGNALS=all
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 addons:
   # apt:
   #   sources:
@@ -14,6 +15,8 @@ addons:
 
 =======
 >>>>>>> 87e4516... Updated travis.yml for changes in test environment
+=======
+>>>>>>> d5a7718... updates travis.yml and pipeline files to address delets and resource types
 matrix:
   include:
     - env:
