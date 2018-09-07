@@ -4,6 +4,22 @@ env:
     - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
     - SEGFAULT_SIGNALS=all
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+addons:
+  # apt:
+  #   sources:
+  #     - debian-sid    # Grab ShellCheck from the Debian repo
+  #   packages:
+  #     - shellcheck
+
+=======
+>>>>>>> 87e4516... Updated travis.yml for changes in test environment
+=======
+>>>>>>> d5a7718... updates travis.yml and pipeline files to address delets and resource types
+=======
+>>>>>>> d5a7718dd02ac9b9c03a75ee627638a748aa7e6f
 matrix:
   include:
     - env:
