@@ -61,6 +61,7 @@ pipeline {
         }
         stage ('Copy Bucket') {
             steps {
+                input 'Have you turned of cron on the source node'
                 withCredentials(
                     [
                         [$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
