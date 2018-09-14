@@ -30,7 +30,7 @@ pipeline {
     }
 
     stages {
-        stage ('Census Sourc Bucket') {
+        stage ('Census Source Bucket') {
             steps {
                 withCredentials(
                     [
@@ -97,9 +97,42 @@ pipeline {
                         [$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
                     ]
                 ) {
-                    sh '''#!/bin/bash
-                        echo > /dev/null
-                    '''
+                    parallel (
+                        source: {
+                            sh '''#!/bin/bash
+                                if [[ -z ${RootFolder} ]]
+                                then
+                                   echo "Censusing entirety of s3://${SourceBucket}"
+                                else
+                                   LIMITSCOPE="--prefix ${RootFolder}"
+                                   echo "Censusing s3://${SourceBucket}/${RootFolder}"
+                                fi
+        
+                                BUCKETCOUNTS=($( aws s3api list-objects --bucket ${SourceBucket} \${LIMITSCOPE} --output json --query "[sum(Contents[].Size), length(Contents[])]" | awk 'NR!=2 {print \$0;next} NR==2 {print \$0 / 1024 / 1024 / 1024}' ))
+        
+                                # For the console readers...
+                                printf "\tBucket Size: %sGiB\n" "${BUCKETCOUNTS[1]}"
+                                printf "\tBucket objects: %s\n" "${BUCKETCOUNTS[2]}"
+                            '''
+                        },
+                        destination: {
+                            sh '''#!/bin/bash
+                                if [[ -z ${RootFolder} ]]
+                                then
+                                   echo "Censusing entirety of s3://${DestinationBucket}"
+                                else
+                                   LIMITSCOPE="--prefix ${RootFolder}"
+                                   echo "Censusing s3://${DestinationBucket}/${RootFolder}"
+                                fi
+        
+                                BUCKETCOUNTS=($( aws s3api list-objects --bucket ${DestinationBucket} \${LIMITSCOPE} --output json --query "[sum(Contents[].Size), length(Contents[])]" | awk 'NR!=2 {print \$0;next} NR==2 {print \$0 / 1024 / 1024 / 1024}' ))
+        
+                                # For the console readers...
+                                printf "\tBucket Size: %sGiB\n" "${BUCKETCOUNTS[1]}"
+                                printf "\tBucket objects: %s\n" "${BUCKETCOUNTS[2]}"
+                            '''
+                        }
+                    )
                 }
             }
         }
