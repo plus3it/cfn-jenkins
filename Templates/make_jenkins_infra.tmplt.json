@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3, IAM, EC2 and ELB templates.",
+  "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3, and IAM templates.",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
