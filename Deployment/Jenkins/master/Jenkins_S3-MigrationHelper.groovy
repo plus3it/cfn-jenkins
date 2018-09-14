@@ -67,10 +67,11 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
+                        cat bucket_census.txt
                         printf "Syncing from s3://${SourceBucket}/${RootFolder} "
                         printf "to s3://${DestinationBucket}/${RootFolder} "
                         echo "[BE PATIENT]"
-                        aws s3 sync "s3://${SourceBucket}/${RootFolder}" "s3://${DestinationBucket}/${RootFolder}"
+                        aws s3 sync --delete "s3://${SourceBucket}/${RootFolder}" "s3://${DestinationBucket}/${RootFolder}"
 
                         SYNCSTATUS="$?"
 
