@@ -94,10 +94,6 @@
       "Description": "S3 Bucket to host backup files (if left blank, a value will be computed).",
       "Type": "String"
     },
-    "ProtectedSubnets": {
-      "Description": "Select three subnets - each from different Availability Zones.",
-      "Type": "List<AWS::EC2::Subnet::Id>"
-    },
     "RolePrefix": {
       "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
       "Type": "String"
