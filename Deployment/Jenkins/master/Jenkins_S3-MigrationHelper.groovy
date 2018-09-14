@@ -92,13 +92,13 @@ pipeline {
         }
         stage ('Diff Buckets') {
             steps {
-                withCredentials(
-                    [
-                        [$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
-                    ]
-                ) {
-                    parallel (
-                        source: {
+                parallel (
+                    source: {
+                        withCredentials(
+                            [
+                                [$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
+                            ]
+                        ) {
                             sh '''#!/bin/bash
                                 if [[ -z ${RootFolder} ]]
                                 then
@@ -114,8 +114,14 @@ pipeline {
                                 printf "\tBucket Size: %sGiB\n" "${BUCKETCOUNTS[1]}"
                                 printf "\tBucket objects: %s\n" "${BUCKETCOUNTS[2]}"
                             '''
-                        },
-                        destination: {
+                        }
+                    },
+                    destination: {
+                        withCredentials(
+                            [
+                                [$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
+                            ]
+                        ) {
                             sh '''#!/bin/bash
                                 if [[ -z ${RootFolder} ]]
                                 then
@@ -132,8 +138,8 @@ pipeline {
                                 printf "\tBucket objects: %s\n" "${BUCKETCOUNTS[2]}"
                             '''
                         }
-                    )
-                }
+                    }
+                )
             }
         }
     }
