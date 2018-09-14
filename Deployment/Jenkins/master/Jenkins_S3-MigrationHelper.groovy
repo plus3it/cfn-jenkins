@@ -53,7 +53,7 @@ pipeline {
                         printf "\tBucket objects: %s\n" "${BUCKETCOUNTS[2]}"
 
                         # Save for later use
-                        echo "SourceBucket ${BUCKETCOUNTS[@1]}" > bucket_census.txt
+                        echo "SourceBucket ${BUCKETCOUNTS[@]}" > bucket_census.txt
 
                     '''
                 }
@@ -67,7 +67,24 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo > /dev/null
+                        printf "Syncing from s3://${SourceBucket}/${RootFolder} "
+                        printf "to s3://${DestinationBucket}/${RootFolder} "
+                        echo "[BE PATIENT]"
+                        aws s3 sync "s3://${SourceBucket}/${RootFolder}" "s3://${DestinationBucket}/${RootFolder}"
+
+                        SYNCSTATUS="$?"
+
+                        case ${SYNCSTATUS} in
+                           0) echo "No errors recorded"
+                              ;;
+                           1) echo "Some files were omitted"
+                              exit 0
+                              ;;
+                           2) echo "Error messages were emitted"
+                              ;;
+                        esac
+
+                        exit "${SYNCSTATUS}"
                     '''
                 }
             }
