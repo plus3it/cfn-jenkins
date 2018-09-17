@@ -39,7 +39,7 @@ parameters {
     string(name: 'BackupCronURL', description: 'URL to the Jenkins backup cron-file')
     string(name: 'BackupFolder', description: 'Folder in S3 Bucket to host backups of Jenkins config-data')
     string(name: 'CfnEndpointUrl', defaultValue: '', description: 'URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com')
-    string(name: 'DnsSuffix', description: 'Suffix for Jenkins' hostname and DNS record')
+    string(name: 'DnsSuffix', description: 'Suffix for Jenkins hostname and DNS record')
     string(name: 'EpelRepo', defaultValue: 'epel', description: 'Name of network's EPEL repo')
     string(name: 'InstanceRole', defaultValue: '', description: 'IAM instance role to apply to the instance')
     choice(name: 'InstanceType', choices: 't2.micro\t2.small\t2.medium\t2.large\c4.large\c4.xlarge\m3.xlarge\m4.large\m4.xlarge\m4.2xlarge\r3.2xlarge', description: 'Amazon EC2 instance type')
