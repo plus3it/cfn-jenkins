@@ -75,7 +75,7 @@ stages {
                 url: "${GitProjUrl}"
             writeFile file: 'master.ec2.instance.parms.json',
                 text: /
-                [
+              [
                 {
                   "ParameterKey": "AdminPubkeyURL",
                   "ParameterValue": "${env.AdminPubkeyURL}"
@@ -208,8 +208,8 @@ stages {
                   "ParameterKey": "WatchmakerEnvironment",
                   "ParameterValue": "${env.WatchmakerEnvironment}"
                 }
-                ]
-               /
+              ]
+              /
             }
         }
     stage ('Prepare AWS Environment') {
