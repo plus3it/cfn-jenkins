@@ -1,0 +1,154 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3, and IAM templates.",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Child Templates"
+          },
+          "Parameters": [
+            "SecurityGroupTemplate",
+            "BucketTemplate",
+            "IamRoleTemplate"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins Setup"
+          },
+          "Parameters": [
+            "JenkinsBackupBucket"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Miscellaneous"
+          },
+          "Parameters": [
+            "ServiceTld",
+            "TargetVPC",
+            "RolePrefix"
+          ]
+        }
+      ]
+    }
+  },
+  "Outputs": {
+    "JenkinsAppSg": {
+      "Description": "Application-access Security Group",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-AppSg"}
+      },
+      "Value": { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] }
+    },
+    "JenkinsIamRoleName": {
+      "Description": "Privilege-role assined to master node",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleName"}
+      },
+      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRole" ] }
+    },
+    "JenkinsIamRoleProfile": {
+      "Description": "Privilege-role assined to master node",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile"}
+      },
+      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ] }
+    },
+    "JenkinsS3Bucket": {
+      "Description": "Name of S3 bucket used for storing backup data.",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-BackupBucket" }
+      },
+      "Value": { "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ] }
+    },
+    "JenkinsVpcId": {
+      "Description": "VPC-ID that Jenkins stack is deployed into.",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-VpcId" }
+      },
+      "Value": { "Ref": "TargetVPC" }
+    }
+  },
+  "Parameters": {
+    "BucketTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
+      "Type": "String"
+    },
+    "IamRoleTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins IAM instance role.",
+      "Type": "String"
+    },
+    "JenkinsAgentPort": {
+      "Description": "TCP Port number that the Jenkins agent-hosts connect through.",
+      "MaxValue": "65535",
+      "MinValue": "1025",
+      "Type": "Number"
+    },
+    "JenkinsBackupBucket": {
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+      "Description": "S3 Bucket to host backup files (if left blank, a value will be computed).",
+      "Type": "String"
+    },
+    "RolePrefix": {
+      "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
+      "Type": "String"
+    },
+    "SecurityGroupTemplate": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL to the child-template for creating the Jenkins network security-groups.",
+      "Type": "String"
+    },
+    "ServiceTld": {
+      "Default": "amazonaws.com",
+      "Description": "TLD of the IAMable service-name.",
+      "Type": "String"
+    },
+    "TargetVPC": {
+      "AllowedPattern": "^vpc-[0-9a-f]*$",
+      "Description": "ID of the VPC to deploy Jenkins components into.",
+      "Type": "AWS::EC2::VPC::Id"
+    }
+  },
+  "Resources": {
+    "IamRes": {
+      "Properties": {
+        "Parameters": {
+          "JenkinsBucketArn": {
+            "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketArn" ]
+          },
+          "RolePrefix": { "Ref": "RolePrefix" },
+          "ServiceTld": { "Ref": "ServiceTld" }
+        },
+        "TemplateURL": { "Ref": "IamRoleTemplate" },
+        "TimeoutInMinutes": "10"
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "S3Res": {
+      "Properties": {
+        "Parameters": {
+          "JenkinsBackupBucket": { "Ref": "JenkinsBackupBucket" }
+        },
+        "TemplateURL": { "Ref": "BucketTemplate" },
+        "TimeoutInMinutes": "10"
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    },
+    "SgRes": {
+      "Properties": {
+        "Parameters": {
+          "JenkinsAgentPort": { "Ref": "JenkinsAgentPort" },
+          "TargetVPC": { "Ref": "TargetVPC" }
+        },
+        "TemplateURL": { "Ref": "SecurityGroupTemplate" },
+        "TimeoutInMinutes": "10"
+      },
+      "Type": "AWS::CloudFormation::Stack"
+    }
+  }
+}
