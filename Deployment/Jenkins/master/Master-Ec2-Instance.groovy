@@ -27,7 +27,7 @@ parameters {
     string(name: 'GitProjBranch', description: 'Project-branch to use from the Jenkins git project')
     string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
     string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
-    string(name: 'ElbName'), description: 'ARN of the ELB to attach the EC2 instance'
+    string(name: 'ElbName', description: 'ARN of the ELB to attach the EC2 instance')
     string(name: 'AdminPubkeyURL', description: 'URL the file containing the admin users SSH public keys')
     string(name: 'AmiDistro', defaultValue: 'CentOS', description: 'Linux distro of the AMI')
     string(name: 'AmiId', description: 'ID of the AMI to launch')
