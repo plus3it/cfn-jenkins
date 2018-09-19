@@ -270,13 +270,13 @@
     },
     "JenkinsRepoKeyURL": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Default": "https://jenkins-ci.org/redhat/jenkins-ci.org.key",
+      "Default": "https://pkg.jenkins.io/redhat-stable/jenkins.io.key",
       "Description": "URL to the Jenkins yum-repository GPG key",
       "Type": "String"
     },
     "JenkinsRepoURL": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Default": "http://pkg.jenkins.io/redhat",
+      "Default": "http://pkg.jenkins.io/redhat-stable",
       "Description": "URL to the Jenkins yum-repository",
       "Type": "String"
     },
@@ -319,7 +319,7 @@
     "PipIndexFips": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Default": "https://pypi.org/simple/",
-      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
+      "Description": "URL of pip index that is compatible with FIPS 140-2 requirements.",
       "Type": "String"
     },
     "PipRpm": {
