@@ -50,51 +50,48 @@ stages {
                 url: "${GitProjUrl}"
             writeFile file: 'master.ec2.instance.parms.json',
                 text: /
-                [
-                {
-                  "ParameterKey": "BackendTimeout",
-                  "ParameterValue": "${env.BackendTimeout}"
-                },
-                {
-                  "ParameterKey": "JenkinsAgentPort",
-                  "ParameterValue": "${env.JenkinsAgentPort}"
-                },
-                {
-                  "ParameterKey": "JenkinsListenerCert",
-                  "ParameterValue": "${env.JenkinsListenerCert}"
-                },
-                {
-                  "ParameterKey": "JenkinsListenPort",
-                  "ParameterValue": "${env.JenkinsListenPort}"
-                },
-                {
-                  "ParameterKey": "JenkinsServicePort",
-                  "ParameterValue": "${env.JenkinsServicePort}"
-                },
-                {
-                  "ParameterKey": "JenkinsPassesSsh",
-                  "ParameterValue": "${env.JenkinsPassesSsh}"
-                },
-                {
-                  "ParameterKey": "HaSubnets",
-                  "ParameterValue": "${env.HaSubnets}"
-                },
-                {
-                  "ParameterKey": "ProxyPrettyName",
-                  "ParameterValue": "${env.ProxyPrettyName}"
-                },
-                {
-                  "ParameterKey": "SecurityGroupIds",
-                  "ParameterValue": "${env.SecurityGroupIds}"
-                }
-                ]
+                  [
+                      {
+                        "ParameterKey": "BackendTimeout",
+                        "ParameterValue": "${env.BackendTimeout}"
+                      },
+                      {
+                        "ParameterKey": "JenkinsAgentPort",
+                        "ParameterValue": "${env.JenkinsAgentPort}"
+                      },
+                      {
+                        "ParameterKey": "JenkinsListenerCert",
+                        "ParameterValue": "${env.JenkinsListenerCert}"
+                      },
+                      {
+                        "ParameterKey": "JenkinsListenPort",
+                        "ParameterValue": "${env.JenkinsListenPort}"
+                      },
+                      {
+                        "ParameterKey": "JenkinsServicePort",
+                        "ParameterValue": "${env.JenkinsServicePort}"
+                      },
+                      {
+                        "ParameterKey": "JenkinsPassesSsh",
+                        "ParameterValue": "${env.JenkinsPassesSsh}"
+                      },
+                      {
+                        "ParameterKey": "HaSubnets",
+                        "ParameterValue": "${env.HaSubnets}"
+                      },
+                      {
+                        "ParameterKey": "ProxyPrettyName",
+                        "ParameterValue": "${env.ProxyPrettyName}"
+                      },
+                      {
+                        "ParameterKey": "SecurityGroupIds",
+                        "ParameterValue": "${env.SecurityGroupIds}"
+                      }
+                  ]
                /
             }
         }
     stage ('Prepare AWS Environment') {
-        options {
-            timeout(time: 1, unit: 'HOURS')
-        }
         steps {
             withCredentials(
                 [
@@ -112,9 +109,6 @@ stages {
         }
     }
     stage ('Launch Jenkins Master EC2 Instance Stack') {
-        options {
-            timeout(time: 1, unit: 'HOURS')
-        }
         steps {
             withCredentials(
                 [
