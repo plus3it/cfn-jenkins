@@ -76,139 +76,139 @@ stages {
             writeFile file: 'master.ec2.instance.parms.json',
                 text: /
                 [
-      {
-          "ParameterKey": "AdminPubkeyURL",
-          "ParameterValue": "${env.AdminPubkeyURL}"
-      },
-      {
-          "ParameterKey": "AmiDistro",
-          "ParameterValue": "${env.AmiDistro}"
-      },
-      {
-          "ParameterKey": "AmiId",
-          "ParameterValue": "${env.AmiId}"
-      },
-      {
-          "ParameterKey": "AppVolumeDevice",
-          "ParameterValue": "${env.AppVolumeDevice}"
-      },
-      {
-          "ParameterKey": "AppVolumeMountPath",
-          "ParameterValue": "${env.AppVolumeMountPath}"
-      },
-      {
-          "ParameterKey": "AppVolumeSize",
-          "ParameterValue": "${env.AppVolumeSize}"
-      },
-      {
-          "ParameterKey": "AppVolumeType",
-          "ParameterValue": "${env.AppVolumeType}"
-      },
-      {
-          "ParameterKey": "BackupBucket",
-          "ParameterValue": "${env.BackupBucket}"
-      },
-      {
-          "ParameterKey": "BackupCronURL",
-          "ParameterValue": "${env.BackupCronURL}"
-      },
-      {
-          "ParameterKey": "BackupFolder",
-          "ParameterValue": "${env.BackupFolder}"
-      },
-      {
-          "ParameterKey": "CfnEndpointUrl",
-          "ParameterValue": "${env.CfnEndpointUrl}"
-      },
-      {
-          "ParameterKey": "DnsSuffix",
-          "ParameterValue": "${env.DnsSuffix}"
-      },
-      {
-          "ParameterKey": "EpelRepo",
-          "ParameterValue": "${env.EpelRepo}"
-      },
-      {
-          "ParameterKey": "InstanceRole",
-          "ParameterValue": "${env.InstanceRole}"
-      },
-      {
-          "ParameterKey": "InstanceType",
-          "ParameterValue": "${env.InstanceType}"
-      },
-      {
-          "ParameterKey": "JenkinsAppinstallScriptUrl",
-          "ParameterValue": "${env.JenkinsAppinstallScriptUrl}"
-      },
-      {
-          "ParameterKey": "JenkinsOsPrepScriptUrl",
-          "ParameterValue": "${env.JenkinsOsPrepScriptUrl}"
-      },
-      {
-          "ParameterKey": "JenkinsRepoKeyURL",
-          "ParameterValue": "${env.JenkinsRepoKeyURL}"
-      },
-      {
-          "ParameterKey": "JenkinsRepoURL",
-          "ParameterValue": "${env.JenkinsRepoURL}"
-      },
-      {
-          "ParameterKey": "JenkinsRpmName",
-          "ParameterValue": "${env.JenkinsRpmName}"
-      },
-      {
-          "ParameterKey": "KeyPairName",
-          "ParameterValue": "${env.KeyPairName}"
-      },
-      {
-          "ParameterKey": "NoPublicIp",
-          "ParameterValue": "${env.NoPublicIp}"
-      },
-      {
-          "ParameterKey": "NoReboot",
-          "ParameterValue": "${env.NoReboot}"
-      },
-      {
-          "ParameterKey": "NoUpdates",
-          "ParameterValue": "${env.NoUpdates}"
-      },
-      {
-          "ParameterKey": "PipIndexFips",
-          "ParameterValue": "${env.PipIndexFips}"
-      },
-      {
-          "ParameterKey": "PipRpm",
-          "ParameterValue": "${env.PipRpm}"
-      },
-      {
-          "ParameterKey": "ProvisionUser",
-          "ParameterValue": "${env.ProvisionUser}"
-      },
-      {
-          "ParameterKey": "PyStache",
-          "ParameterValue": "${env.PyStache}"
-      },
-      {
-          "ParameterKey": "SecurityGroupIds",
-          "ParameterValue": "${env.SecurityGroupIds}"
-      },
-      {
-          "ParameterKey": "ServerHostname",
-          "ParameterValue": "${env.ServerHostname}"
-      },
-      {
-          "ParameterKey": "SubnetIds",
-          "ParameterValue": "${env.SubnetIds}"
-      },
-      {
-          "ParameterKey": "WatchmakerConfig",
-          "ParameterValue": "${env.WatchmakerConfig}"
-      },
-      {
-          "ParameterKey": "WatchmakerEnvironment",
-          "ParameterValue": "${env.WatchmakerEnvironment}"
-      }
-  ]
+                  {
+                      "ParameterKey": "AdminPubkeyURL",
+                      "ParameterValue": "${env.AdminPubkeyURL}"
+                  },
+                  {
+                      "ParameterKey": "AmiDistro",
+                      "ParameterValue": "${env.AmiDistro}"
+                  },
+                  {
+                      "ParameterKey": "AmiId",
+                      "ParameterValue": "${env.AmiId}"
+                  },
+                  {
+                      "ParameterKey": "AppVolumeDevice",
+                      "ParameterValue": "${env.AppVolumeDevice}"
+                  },
+                  {
+                      "ParameterKey": "AppVolumeMountPath",
+                      "ParameterValue": "${env.AppVolumeMountPath}"
+                  },
+                  {
+                      "ParameterKey": "AppVolumeSize",
+                      "ParameterValue": "${env.AppVolumeSize}"
+                  },
+                  {
+                      "ParameterKey": "AppVolumeType",
+                      "ParameterValue": "${env.AppVolumeType}"
+                  },
+                  {
+                      "ParameterKey": "BackupBucket",
+                      "ParameterValue": "${env.BackupBucket}"
+                  },
+                  {
+                      "ParameterKey": "BackupCronURL",
+                      "ParameterValue": "${env.BackupCronURL}"
+                  },
+                  {
+                      "ParameterKey": "BackupFolder",
+                      "ParameterValue": "${env.BackupFolder}"
+                  },
+                  {
+                      "ParameterKey": "CfnEndpointUrl",
+                      "ParameterValue": "${env.CfnEndpointUrl}"
+                  },
+                  {
+                      "ParameterKey": "DnsSuffix",
+                      "ParameterValue": "${env.DnsSuffix}"
+                  },
+                  {
+                      "ParameterKey": "EpelRepo",
+                      "ParameterValue": "${env.EpelRepo}"
+                  },
+                  {
+                      "ParameterKey": "InstanceRole",
+                      "ParameterValue": "${env.InstanceRole}"
+                  },
+                  {
+                      "ParameterKey": "InstanceType",
+                      "ParameterValue": "${env.InstanceType}"
+                  },
+                  {
+                      "ParameterKey": "JenkinsAppinstallScriptUrl",
+                      "ParameterValue": "${env.JenkinsAppinstallScriptUrl}"
+                  },
+                  {
+                      "ParameterKey": "JenkinsOsPrepScriptUrl",
+                      "ParameterValue": "${env.JenkinsOsPrepScriptUrl}"
+                  },
+                  {
+                      "ParameterKey": "JenkinsRepoKeyURL",
+                      "ParameterValue": "${env.JenkinsRepoKeyURL}"
+                  },
+                  {
+                      "ParameterKey": "JenkinsRepoURL",
+                      "ParameterValue": "${env.JenkinsRepoURL}"
+                  },
+                  {
+                      "ParameterKey": "JenkinsRpmName",
+                      "ParameterValue": "${env.JenkinsRpmName}"
+                  },
+                  {
+                      "ParameterKey": "KeyPairName",
+                      "ParameterValue": "${env.KeyPairName}"
+                  },
+                  {
+                      "ParameterKey": "NoPublicIp",
+                      "ParameterValue": "${env.NoPublicIp}"
+                  },
+                  {
+                      "ParameterKey": "NoReboot",
+                      "ParameterValue": "${env.NoReboot}"
+                  },
+                  {
+                      "ParameterKey": "NoUpdates",
+                      "ParameterValue": "${env.NoUpdates}"
+                  },
+                  {
+                      "ParameterKey": "PipIndexFips",
+                      "ParameterValue": "${env.PipIndexFips}"
+                  },
+                  {
+                      "ParameterKey": "PipRpm",
+                      "ParameterValue": "${env.PipRpm}"
+                  },
+                  {
+                      "ParameterKey": "ProvisionUser",
+                      "ParameterValue": "${env.ProvisionUser}"
+                  },
+                  {
+                      "ParameterKey": "PyStache",
+                      "ParameterValue": "${env.PyStache}"
+                  },
+                  {
+                      "ParameterKey": "SecurityGroupIds",
+                      "ParameterValue": "${env.SecurityGroupIds}"
+                  },
+                  {
+                      "ParameterKey": "ServerHostname",
+                      "ParameterValue": "${env.ServerHostname}"
+                  },
+                  {
+                      "ParameterKey": "SubnetIds",
+                      "ParameterValue": "${env.SubnetIds}"
+                  },
+                  {
+                      "ParameterKey": "WatchmakerConfig",
+                      "ParameterValue": "${env.WatchmakerConfig}"
+                  },
+                  {
+                      "ParameterKey": "WatchmakerEnvironment",
+                      "ParameterValue": "${env.WatchmakerEnvironment}"
+                  }
+                ]
               /
             }
         }
