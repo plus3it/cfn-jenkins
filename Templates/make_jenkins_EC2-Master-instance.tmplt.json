@@ -579,7 +579,7 @@
                 "command": "bash -xe /etc/cfn/scripts/appinstall.sh"
               },
               "2-install-backups_cron": {
-                "command": "cp /etc/cfn/scripts/backups.cron /etc/cron.d/JenkinsMaster-backups"
+                "command": "install -b -m 000644 -o root -g root /etc/cfn/scripts/backups.cron /etc/cron.d/JenkinsMaster-backups"
               }
             }
           },
