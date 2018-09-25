@@ -563,7 +563,7 @@
                       "# Sync JENKINS_HOME to S3 for re-deployments\n",
                       "*/20 * * * * jenkins tar cf - ",
                         { "Ref": "AppVolumeMountPath" },
-                        " | aws s3 cp - ",
+                        " | aws s3 cp - s3://",
                         { "Ref": "BackupBucket" },
                         "/Backups/sync/JENKINS_HOME-$(date '+\\%M').tar\n"
                     ]
