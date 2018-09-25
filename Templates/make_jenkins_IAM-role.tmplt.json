@@ -58,7 +58,7 @@
     }
   },
   "Parameters": {
-    "BackupBucketArn": {
+    "BackupBucketName": {
       "Description": "ARN of S3 Bucket used to host Jenkins backups",
       "Type": "String"
     },
@@ -88,7 +88,10 @@
                   "Fn::Join": [
                     "",
                     [
-                      { "Ref": "BackupBucketArn" },
+                      "arn:",
+                      { "Ref": "AWS::Partition" },
+                      ":s3:::",
+                      { "Ref": "BackupBucketName" },
                       ""
                     ]
                   ]
@@ -97,7 +100,10 @@
                   "Fn::Join": [
                     "",
                     [
-                      { "Ref": "BackupBucketArn" },
+                      "arn:",
+                      { "Ref": "AWS::Partition" },
+                      ":s3:::",
+                      { "Ref": "BackupBucketName" },
                       "/*"
                     ]
                   ]
