@@ -88,6 +88,11 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerAdminUsers" }, "" ] }
       ]
     },
+    "UseCfnAppInstaller": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "JenkinsAppinstallScriptUrl" }, "" ] }
+      ]
+    },
     "UseCfnUrl": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "CfnEndpointUrl" }, "" ] }
@@ -106,6 +111,11 @@
     "UseKeyPair": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
+      ]
+    },
+    "UseOsPrepScript": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "JenkinsOsPrepScriptUrl" }, "" ] }
       ]
     },
     "UseOuPath": {
@@ -261,6 +271,16 @@
       "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is false",
       "Type": "String"
     },
+    "BackupBucket": {
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+      "Description": "S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
+    "BackupFolder": {
+      "AllowedPattern": "^[a-zA-Z]*[a-z0-9-]*[a-zA-Z]*$",
+      "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
     "CfnBootstrapUtilsUrl": {
       "AllowedPattern": "^http[s]?://.*\\.tar\\.gz$",
       "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
@@ -283,6 +303,13 @@
       "AllowedPattern": "^$|^s3://.*$",
       "Default": "",
       "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
+      "Type": "String"
+    },
+    "EpelRepo": {
+      "AllowedPattern": "^[a-z][a-z0-9-]*$",
+      "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
+      "Default": "epel",
+      "Description": "Name of network's EPEL repo.",
       "Type": "String"
     },
     "InstanceRoleName": {
@@ -325,6 +352,33 @@
       "Default": "t2.xlarge",
       "Description": "Amazon EC2 instance type",
       "Type": "String"
+    },
+    "JenkinsAppinstallScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of Jenkins application-installer script.",
+      "Type": "String"
+    },
+    "JenkinsOsPrepScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OS-preparation script.",
+      "Type": "String"
+    },
+    "JenkinsRepoKeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://pkg.jenkins.io/redhat-stable/jenkins.io.key",
+      "Description": "URL to the Jenkins yum-repository GPG key",
+      "Type": "String"
+    },
+    "JenkinsRepoURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "http://pkg.jenkins.io/redhat-stable",
+      "Description": "URL to the Jenkins yum-repository",
+      "Type": "String"
+    },
+    "JenkinsRpmName": {
+      "Description": "Name of Jenkins RPM to install. Include release version if 'other-than-latest' is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc.",
+      "Type": "String",
+      "AllowedPattern": "^jenkins.*$"
     },
     "KeyPairName": {
       "Description": "Public/private key pair allowing an operator to securely connect to instance immediately after instance's SSHD comes online",
@@ -487,6 +541,48 @@
               }
             }
           },
+          "app-install": {
+            "files": {
+              "/etc/cfn/scripts/appinstall.sh": {
+                "source": { "Ref": "JenkinsAppinstallScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              },
+              "/etc/cfn/scripts/backups.cron": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "# Daily backup of JENKINS_HOME to S3\n",
+                      "0 23 * * * jenkins tar cf - ",
+                        { "Ref": "AppVolumeMountPath" },
+                        " | aws s3 cp - ",
+                        { "Ref": "BackupBucket" },
+                        "/Backups/daily/$(date '+\\%A').tar\n",
+                      "# Sync JENKINS_HOME to S3 for re-deployments\n",
+                      "*/20 * * * * jenkins tar cf - ",
+                        { "Ref": "AppVolumeMountPath" },
+                        " | aws s3 cp - ",
+                        { "Ref": "BackupBucket" },
+                        "/Backups/sync/JENKINS_HOME-$(date '+\\%M').tar\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-appinstall-script": {
+                "command": "bash -xe /etc/cfn/scripts/appinstall.sh"
+              },
+              "2-install-backups_cron": {
+                "command": "cp /etc/cfn/scripts/backups.cron /etc/cron.d/JenkinsMaster-backups"
+              }
+            }
+          },
           "configSets": {
             "launch": [
               "setup",
@@ -505,7 +601,21 @@
                 ]
               },
               "watchmaker-install",
+              {
+                "Fn::If": [
+                  "UseOsPrepScript",
+                  "osprep",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "watchmaker-launch",
+              {
+                "Fn::If": [
+                  "UseCfnAppInstaller",
+                  "app-install",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "finalize",
               {
                 "Fn::If": [
@@ -532,7 +642,21 @@
                 ]
               },
               "watchmaker-install",
+              {
+                "Fn::If": [
+                  "UseOsPrepScript",
+                  "osprep",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "watchmaker-update",
+              {
+                "Fn::If": [
+                  "UseCfnAppInstaller",
+                  "app-install",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "finalize",
               {
                 "Fn::If": [
@@ -735,6 +859,35 @@
               }
             }
           },
+          "osprep": {
+            "files": {
+              "/etc/cfn/scripts/osprep.sh": {
+                "source": { "Ref": "JenkinsOsPrepScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-osprep-script": {
+                "command": "bash -xe /etc/cfn/scripts/osprep.sh"
+              },
+              "2-packages-from-epel": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "yum --enablerepo=",
+                        { "Ref": "EpelRepo" },
+                        " install -y",
+                        " git",
+                        "\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          },
           "reboot": {
             "commands": {
               "10-reboot": {
@@ -744,6 +897,48 @@
           },
           "setup": {
             "files": {
+              "/etc/cfn/Jenkins.envs": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "JENKINS_APPINSTALL_SCRIPT=",
+                        { "Ref": "JenkinsAppinstallScriptUrl" },
+                        "\n",
+                      "JENKINS_BACKUP_BUCKET=",
+                        { "Ref": "BackupBucket" },
+                        "\n",
+                      "JENKINS_BACKUP_FOLDER=",
+                        { "Ref": "BackupFolder" },
+                        "\n",
+                      "JENKINS_CFN_ENDPOINT=",
+                        { "Ref": "CfnEndpointUrl" },
+                        "\n",
+                      "JENKINS_EPEL_REPO=",
+                        { "Ref": "EpelRepo" },
+                        "\n",
+                      "JENKINS_HOME_PATH=",
+                        { "Ref": "AppVolumeMountPath" },
+                        "\n",
+                      "JENKINS_OSPREP_SCRIPT=",
+                        { "Ref": "JenkinsOsPrepScriptUrl" },
+                        "\n",
+                      "JENKINS_RPM_NAME=",
+                        { "Ref": "JenkinsRpmName" },
+                        "\n",
+                      "JENKINS_YUM_URL=",
+                        { "Ref": "JenkinsRepoURL" },
+                        "\n",
+                      "JENKINS_YUMKEY_URL=",
+                        { "Ref": "JenkinsRepoKeyURL" },
+                        "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
               "/etc/cfn/cfn-hup.conf": {
                 "content": {
                   "Fn::Join": [
@@ -850,6 +1045,27 @@
                 },
                 "group": "root",
                 "mode": "000400",
+                "owner": "root"
+              },
+              "/etc/yum.repos.d/jenkins.repo": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[jenkins]\n",
+                      "gpgkey = ",
+                      { "Ref": "JenkinsRepoKeyURL" },
+                      "\n",
+                      "enabled = 1\n",
+                      "baseurl = ",
+                      { "Ref": "JenkinsRepoURL" },
+                      "\n",
+                      "name = Jenkins CI service-repository\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000444",
                 "owner": "root"
               },
               "/etc/cfn/scripts/watchmaker-install.sh": {
