@@ -19,11 +19,6 @@
     "CreateAppVolume": {
       "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "true" ]
     },
-    "ExecuteAppScript": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "AppScriptUrl" }, "" ] }
-      ]
-    },
     "InstallCloudWatchAgent": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "CloudWatchAgentUrl" }, "" ] }
@@ -171,16 +166,6 @@
         },
         {
           "Label": {
-            "default": "EC2 Application Configuration"
-          },
-          "Parameters": [
-            "AppScriptUrl",
-            "AppScriptParams",
-            "AppScriptShell"
-          ]
-        },
-        {
-          "Label": {
             "default": "EC2 Application EBS Volume"
           },
           "Parameters": [
@@ -240,26 +225,6 @@
     "AmiId": {
       "Description": "ID of the AMI to launch",
       "Type": "AWS::EC2::Image::Id"
-    },
-    "AppScriptParams": {
-      "Description": "Parameter string to pass to the application script. Ignored if \"AppScriptUrl\" is blank",
-      "Type": "String"
-    },
-    "AppScriptShell": {
-      "AllowedValues": [
-        "bash",
-        "python"
-      ],
-      "Default": "bash",
-      "Description": "Shell with which to execute the application script. Ignored if \"AppScriptUrl\" is blank",
-      "Type": "String"
-    },
-    "AppScriptUrl": {
-      "AllowedPattern": "^$|^s3://(.*)$",
-      "ConstraintDescription": "Must use an S3 URL (starts with \"s3://\")",
-      "Default": "",
-      "Description": "(Optional) S3 URL to the application script in an S3 bucket (s3://). Leave blank to launch without an application script. If specified, an appropriate \"InstanceRoleName\" is required",
-      "Type": "String"
     },
     "AppVolumeDevice": {
       "AllowedValues": [
@@ -541,13 +506,6 @@
               },
               "watchmaker-install",
               "watchmaker-launch",
-              {
-                "Fn::If": [
-                  "ExecuteAppScript",
-                  "make-app",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
               "finalize",
               {
                 "Fn::If": [
@@ -575,13 +533,6 @@
               },
               "watchmaker-install",
               "watchmaker-update",
-              {
-                "Fn::If": [
-                  "ExecuteAppScript",
-                  "make-app",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
               "finalize",
               {
                 "Fn::If": [
@@ -781,38 +732,6 @@
             "commands": {
               "10-install-updates": {
                 "command": "yum -y update"
-              }
-            }
-          },
-          "make-app": {
-            "commands": {
-              "05-get-appscript": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "mkdir -p /etc/cfn/scripts &&",
-                      " aws s3 cp ",
-                      { "Ref": "AppScriptUrl" },
-                      " /etc/cfn/scripts/make-app",
-                      " &&",
-                      " chown root:root /etc/cfn/scripts/make-app &&",
-                      " chmod 700 /etc/cfn/scripts/make-app"
-                    ]
-                  ]
-                }
-              },
-              "10-make-app": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      { "Ref": "AppScriptShell" },
-                      " /etc/cfn/scripts/make-app ",
-                      { "Ref": "AppScriptParams" }
-                    ]
-                  ]
-                }
               }
             }
           },
