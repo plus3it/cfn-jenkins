@@ -78,21 +78,14 @@
         { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
       ]
     },
-    "SupportsNvme": {
-      "Fn::Equals": [
-        {
-          "Fn::FindInMap": [
-            "InstanceTypeMap",
-            { "Ref": "InstanceType" },
-            "SupportsNvme"
-          ]
-        },
-        "true"
-      ]
-    },
     "UseAdminGroups": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "WatchmakerAdminGroups" }, "" ] }
+      ]
+    },
+    "UseAdminPubkeyURL": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "AdminPubkeyURL" }, "" ] }
       ]
     },
     "UseAdminUsers": {
@@ -113,6 +106,11 @@
     "UseEnvironment": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
+      ]
+    },
+    "UseKeyPair": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
       ]
     },
     "UseOuPath": {
@@ -234,6 +232,11 @@
     }
   },
   "Parameters": {
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^http[s]?://.*|^$",
+      "Description": "(Optional) URL of file containing admin group's SSH public-keys",
+      "Type": "String"
+    },
     "AmiId": {
       "Description": "ID of the AMI to launch",
       "Type": "AWS::EC2::Image::Id"
@@ -359,8 +362,8 @@
       "Type": "String"
     },
     "KeyPairName": {
-      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Description": "Public/private key pair allowing an operator to securely connect to instance immediately after instance's SSHD comes online",
+      "Type": "String"
     },
     "NoPublicIp": {
       "AllowedValues": [
@@ -394,11 +397,26 @@
       "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
       "Type": "String"
     },
+    "ProvisionUser": {
+      "AllowedPattern": "[a-z0-9-]{6,12}",
+      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
+      "Default": "ec2-user",
+      "Description": "Name for remote-administration account",
+      "Type": "String"
+    },
     "PypiIndexUrl": {
       "AllowedPattern": "^http[s]?://.*$",
       "Default": "https://pypi.org/simple",
       "Description": "URL to the PyPi Index",
       "Type": "String"
+    },
+    "RootVolumeSize": {
+      "ConstraintDescription": "Must be between 20GB and 16384GB.",
+      "Default": "20",
+      "Description": "Size in GB of the EBS volume to create. If smaller than AMI defaul, create operation will fail; If larger, root device-volume's partition size will be increased",
+      "MaxValue": "16384",
+      "MinValue": "20",
+      "Type": "Number"
     },
     "SecurityGroupIds": {
       "Description": "List of security groups to apply to the instance",
@@ -466,9 +484,54 @@
       },
       "Metadata": {
         "AWS::CloudFormation::Init": {
+          "admkey-install": {
+            "commands": {
+              "1-install-keyfile": {
+                "command": "bash -xe /etc/cfn/scripts/admkey.sh"
+              }
+            },
+            "files": {
+              "/etc/cfn/files/AdminKeys.pub": {
+                "source": { "Ref": "AdminPubkeyURL" },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              },
+              "/etc/cfn/scripts/admkey.sh": {
+              "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PROVHOME=$(getent passwd ",
+                      { "Ref": "ProvisionUser" },
+                      " | awk -F\":\" '{print $6}')\n",
+                      "\n",
+                      "install -b -m 000600 -o ",
+                      { "Ref": "ProvisionUser" },
+                      " -g ",
+                      { "Ref": "ProvisionUser" },
+                      " /etc/cfn/files/AdminKeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            }
+          },
           "configSets": {
             "launch": [
               "setup",
+              {
+                "Fn::If": [
+                  "UseAdminPubkeyURL",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               {
                 "Fn::If": [
                   "InstallCloudWatchAgent",
@@ -496,6 +559,13 @@
             ],
             "update": [
               "setup",
+              {
+                "Fn::If": [
+                  "UseAdminPubkeyURL",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               {
                 "Fn::If": [
                   "InstallUpdates",
@@ -1144,6 +1214,7 @@
             "DeviceName": "/dev/sda1",
             "Ebs": {
               "DeleteOnTermination": true,
+              "VolumeSize": { "Ref": "RootVolumeSize" },
               "VolumeType": "gp2"
             }
           },
@@ -1189,7 +1260,13 @@
         },
         "ImageId": { "Ref": "AmiId" },
         "InstanceType": { "Ref": "InstanceType" },
-        "KeyName": { "Ref": "KeyPairName" },
+        "KeyName": {
+          "Fn::If": [
+            "UseKeyPair",
+            { "Ref": "KeyPairName" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "NetworkInterfaces": [
           {
             "AssociatePublicIpAddress": {
@@ -1239,6 +1316,22 @@
                 "Content-Disposition: attachment; filename=\"cloud.cfg\"\n",
                 "\n",
                 "#cloud-config\n",
+                "\n",
+                "system_info:\n",
+                "  default_user:\n",
+                "    name: ",
+                     { "Ref": "ProvisionUser" },
+                     "\n",
+                "\n",
+                "hostname: ",
+                { "Ref": "WatchmakerComputerName" },
+                "\n",
+                "\n",
+                "growpart:\n",
+                "  mode: auto\n",
+                "  devices: [ '/dev/xvda', '/dev/xvda2', '/dev/nvme0n1p2' ]\n",
+                "  ignore_growroot_disabled: false\n",
+                "\n",
                 {
                   "Fn::If": [
                     "CreateAppVolume",
@@ -1250,9 +1343,21 @@
                           "- cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
                           {
                             "Fn::If": [
-                              "SupportsNvme",
-                              "/dev/nvme1n1",
-                              "/dev/xvdf"
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
                             ]
                           },
                           "\n",
@@ -1260,12 +1365,25 @@
                           "- [ ",
                           {
                             "Fn::If": [
-                              "SupportsNvme",
-                              "/dev/nvme1n1",
-                              "/dev/xvdf"
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
                             ]
                           },
                           ", ",
+
                           { "Ref": "AppVolumeMountPath" },
                           " ]\n"
                         ]
@@ -1282,6 +1400,19 @@
                 "Content-Disposition: attachment; filename=\"script.sh\"\n",
                 "\n",
                 "#!/bin/bash -xe\n\n",
+                "\n",
+                "# Extend any available LVM PVs\n",
+                "if [[ -x $( which pvs ) ]]\n",
+                "then\n",
+                "   LVMPVS=($(pvs --noheadings -o pv_name))\n",
+                "   for PV in \"${LVMPVS[@]}\"\n",
+                "   do\n",
+                "      pvresize ${PV}\n",
+                "   done\n",
+                "\n",
+                "   vgdisplay -s\n",
+                "fi\n",
+                "\n",
                 "# Export AWS ENVs\n",
                 "test -r /etc/aws/models/endpoints.json && export AWS_DATA_PATH=/etc/aws/models || true\n",
                 "export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
@@ -1289,6 +1420,11 @@
                 "export AWS_DEFAULT_REGION=",
                 { "Ref": "AWS::Region" },
                 "\n\n",
+                "# Add local hostname binding\n",
+                "printf \"%s\\t%s %s\\n\" ",
+                "\"$( ip addr show eth0 | sed -n '/eth0$/p' | sed -e 's/^ *inet *//' -e 's#/.*$##' )\" ",
+                "\"$( hostname -f)\" \"$( hostname -s )\" >> /etc/hosts\n",
+                "\n",
                 "# Get pip\n",
                 "PYPI_URL=",
                 { "Ref": "PypiIndexUrl" },
@@ -1297,6 +1433,14 @@
                 { "Ref": "CfnGetPipUrl" },
                 " | python - --index-url=\"$PYPI_URL\" 'wheel<0.30.0;python_version<\"2.7\"' 'wheel;python_version>=\"2.7\"'",
                 "\n\n",
+                "# Update cfn-bootstrapper hash method\n",
+                "PYVERS=$(python -c 'import sys;",
+                " version=sys.version_info[:2];",
+                " print(\"{0}.{1}\".format(*version))')\n",
+                "sed -i '/^[ \\t][ \\t]*self._etag/s/etag$/None/'",
+                " /usr/lib/python${PYVERS}/site-packages/cfnbootstrap",
+                "/util.py\n",
+                "\n",
                 "# Add pip to path\n",
                 "hash pip 2> /dev/null || ",
                 "PATH=\"${PATH}:/usr/local/bin\"",
