@@ -73,7 +73,7 @@ function TryRestore {
    fi
 
    # Lookd for TAR files; use last-written
-   RESTOREFILE="$(aws s3 ls ${JENKHOMEURL}/sync/ | grep tar$ | sort | tail -1)"
+   RESTOREFILE="$(aws s3 ls ${JENKHOMEURL}/sync/ | grep tar$ | sort | tail -1 | awk '{print $4}')"
 
    # Ensure a auto-recovery TAR file was found
    if [[ -z ${RESTOREFILE} ]]
@@ -84,7 +84,7 @@ function TryRestore {
 
    # Validate the TAR file
    printf "Attempting to validate %s... " "${RESTOREFILE}"
-   if [[ $( aws s3 cp "${RESTOREFILE}" - | tar tf - > /dev/null )$? -ne 0 ]]
+   if [[ $( aws s3 cp "${JENKHOMEURL}/sync/${RESTOREFILE}" - | tar tf - > /dev/null )$? -ne 0 ]]
    then
       echo "Errors found. Bailing... "
       return
@@ -94,8 +94,8 @@ function TryRestore {
 
    # Try to restore from TAR file
    echo "Attempting to restore JENKINS_HOME from S3... "
-   sudo -H -u jenkins /usr/bin/aws s3 cp "${RESTOREFILE}" - | \
-     ( cd "${JENKDATADIR}" && tar xvf - ) 
+   sudo -H -u jenkins bash -c "/usr/bin/aws s3 cp ${JENKHOMEURL}/sync/${RESTOREFILE} - | \
+     ( cd ${JENKDATADIR} && tar xvf - )"
 
 }
 
