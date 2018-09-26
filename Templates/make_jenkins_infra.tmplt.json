@@ -39,43 +39,69 @@
     "JenkinsAppSg": {
       "Description": "Application-access Security Group",
       "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-AppSg"}
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-AppSg"
+        }
       },
-      "Value": { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] }
+      "Value": {
+        "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ]
+      }
     },
     "JenkinsIamRoleName": {
-      "Description": "Privilege-role assined to master node",
+      "Description": "Privilege-role name assigned to master node",
       "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleName"}
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstanceRoleName"
+        }
       },
-      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRole" ] }
+      "Value": {
+        "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleName" ]
+      }
     },
     "JenkinsIamRoleProfile": {
-      "Description": "Privilege-role assined to master node",
+      "Description": "Privilege-role's profile assigned to master node",
       "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile"}
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile"
+        }
       },
-      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ] }
+      "Value": {
+        "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ]
+      }
     },
     "JenkinsS3Bucket": {
       "Description": "Name of S3 bucket used for storing backup data.",
       "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-BackupBucket" }
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-BackupBucket"
+        }
       },
-      "Value": { "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ] }
+      "Value": {
+        "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ]
+      }
     },
     "JenkinsVpcId": {
       "Description": "VPC-ID that Jenkins stack is deployed into.",
       "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-VpcId" }
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-VpcId"
+        }
       },
       "Value": { "Ref": "TargetVPC" }
     }
   },
   "Parameters": {
+    "BackupBucketName": {
+      "Description": "ARN of S3 Bucket used to host Jenkins backups",
+      "Type": "String"
+    },
     "BucketTemplate": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
+      "Type": "String"
+    },
+    "CloudwatchBucketName": {
+      "Description": "Name of the S3 Bucket hosting the CloudWatch agent archive files",
       "Type": "String"
     },
     "IamRoleTemplate": {
@@ -118,11 +144,11 @@
     "IamRes": {
       "Properties": {
         "Parameters": {
-          "JenkinsBucketArn": {
-            "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketArn" ]
+          "BackupBucketName": {
+            "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ]
           },
-          "RolePrefix": { "Ref": "RolePrefix" },
-          "ServiceTld": { "Ref": "ServiceTld" }
+          "CloudwatchBucketName": { "Ref": "CloudwatchBucketName" },
+          "RolePrefix": { "Ref": "RolePrefix" }
         },
         "TemplateURL": { "Ref": "IamRoleTemplate" },
         "TimeoutInMinutes": "10"
