@@ -91,6 +91,13 @@
       },
       "Value": { "Fn::GetAtt": [ "ElbRes", "Outputs.JenkinsElbFqdn" ] }
     },
+    "JenkinsElbRawUrl": {
+      "Description": "Raw FQDN of ELB pointing to Jenkins master",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-ELB-Url" }
+      },
+      "Value": { "Fn::GetAtt": [ "ElbRes", "Outputs.JenkinsElbRawUrl" ] }
+    },
     "JenkinsIamRoleName": {
       "Description": "Privilege-role assined to master node",
       "Export": {
@@ -118,6 +125,13 @@
         "Name": { "Fn::Sub": "${AWS::StackName}-BackupBucket" }
       },
       "Value": { "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ] }
+    },
+    "JenkinsSgApp": {
+      "Description": "Name of the application Security-group.",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-AppSg" }
+      },
+      "Value": { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] }
     },
     "JenkinsVpcId": {
       "Description": "VPC-ID that Jenkins stack is deployed into.",
