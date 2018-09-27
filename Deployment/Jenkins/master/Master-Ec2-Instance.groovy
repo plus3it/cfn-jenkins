@@ -67,6 +67,7 @@ pipeline {
         string(name: 'WatchmakerConfig', defaultValue: '', description: '(Optional) Path to a Watchmaker config file.  The config file path can be a remote source (i.e. http[s]://, s3://) or local directory (i.e. file://)')
         string(name: 'WatchmakerEnvironment', defaultValue: '', description: 'Environment in which the instance is being deployed')
         string(name: 'WatchmakerOuPath', defaultValue: '', description: '(Optional) DN of the OU to place the instance when joining a domain. If blank and \'WatchmakerEnvironment\' enforces a domain join, the instance will be placed in a default container. Leave blank if not joining a domain, or if \'WatchmakerEnvironment\' is \'false\'')
+        string(name: 'ElbName', description: 'ELB to attach the EC2 instance (use logical name from ELB console)')
     }
 
     stages {
