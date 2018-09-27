@@ -94,8 +94,7 @@ function TryRestore {
 
    # Try to restore from TAR file
    echo "Attempting to restore JENKINS_HOME from S3... "
-   sudo -H -u jenkins bash -c "/usr/bin/aws s3 cp ${JENKHOMEURL}/sync/${RESTOREFILE} - | \
-     tar -C / -xvf -"
+   /usr/bin/aws s3 cp ${JENKHOMEURL}/sync/${RESTOREFILE} - | tar -C / --checkpoint=100000 -xf -
 
 }
 
