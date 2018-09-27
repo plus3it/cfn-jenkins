@@ -50,204 +50,40 @@ pipeline {
                     text: /
                         [
                             {
-                                "ParameterKey": "AdminPubkeyURL",
-                                "ParameterValue": "${env.AdminPubkeyURL}"
-                            },
-                            {
-                                "ParameterKey": "AmiId",
-                                "ParameterValue": "${env.AmiId}"
-                            },
-                            {
-                                "ParameterKey": "AppVolumeDevice",
-                                "ParameterValue": "${env.AppVolumeDevice}"
-                            },
-                            {
-                                "ParameterKey": "AppVolumeMountPath",
-                                "ParameterValue": "${env.AppVolumeMountPath}"
-                            },
-                            {
-                                "ParameterKey": "AppVolumeSize",
-                                "ParameterValue": "${env.AppVolumeSize}"
-                            },
-                            {
-                                "ParameterKey": "AppVolumeType",
-                                "ParameterValue": "${env.AppVolumeType}"
-                            },
-                            {
-                                "ParameterKey": "BackendTimeout",
-                                "ParameterValue": "${env.BackendTimeout}"
-                            },
-                            {
-                                "ParameterKey": "BackupBucket",
-                                "ParameterValue": "${env.BackupBucket}"
-                            },
-                            {
-                                "ParameterKey": "BackupFolder",
-                                "ParameterValue": "${env.BackupFolder}"
+                                "ParameterKey": "BackupBucketName",
+                                "ParameterValue": "${env.BackupBucketName}"
                             },
                             {
                                 "ParameterKey": "BucketTemplate",
                                 "ParameterValue": "${env.BucketTemplate}"
                             },
                             {
-                                "ParameterKey": "CfnBootstrapUtilsUrl",
-                                "ParameterValue": "${env.CfnBootstrapUtilsUrl}"
-                            },
-                            {
-                                "ParameterKey": "CfnEndpointUrl",
-                                "ParameterValue": "${env.CfnEndpointUrl}"
-                            },
-                            {
-                                "ParameterKey": "CfnGetPipUrl",
-                                "ParameterValue": "${env.CfnGetPipUrl}"
-                            },
-                            {
                                 "ParameterKey": "CloudwatchBucketName",
                                 "ParameterValue": "${env.CloudwatchBucketName}"
-                            },
-                            {
-                                "ParameterKey": "CloudWatchAgentUrl",
-                                "ParameterValue": "${env.CloudWatchAgentUrl}"
-                            },
-                            {
-                                "ParameterKey": "Ec2Template",
-                                "ParameterValue": "${env.Ec2Template}"
-                            },
-                            {
-                                "ParameterKey": "ElbTemplate",
-                                "ParameterValue": "${env.ElbTemplate}"
-                            },
-                            {
-                                "ParameterKey": "EpelRepo",
-                                "ParameterValue": "${env.EpelRepo}"
-                            },
-                            {
-                                "ParameterKey": "HaSubnets",
-                                "ParameterValue": "${env.HaSubnets}"
                             },
                             {
                                 "ParameterKey": "IamRoleTemplate",
                                 "ParameterValue": "${env.IamRoleTemplate}"
                             },
                             {
-                                "ParameterKey": "InstanceType",
-                                "ParameterValue": "${env.InstanceType}"
-                            },
-                            {
                                 "ParameterKey": "JenkinsAgentPort",
                                 "ParameterValue": "${env.JenkinsAgentPort}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsAppinstallScriptUrl",
-                                "ParameterValue": "${env.JenkinsAppinstallScriptUrl}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsListenPort",
-                                "ParameterValue": "${env.JenkinsListenPort}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsListenerCert",
-                                "ParameterValue": "${env.JenkinsListenerCert}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsOsPrepScriptUrl",
-                                "ParameterValue": "${env.JenkinsOsPrepScriptUrl}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsPassesSsh",
-                                "ParameterValue": "${env.JenkinsPassesSsh}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsRepoKeyURL",
-                                "ParameterValue": "${env.JenkinsRepoKeyURL}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsRepoURL",
-                                "ParameterValue": "${env.JenkinsRepoURL}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsRpmName",
-                                "ParameterValue": "${env.JenkinsRpmName}"
-                            },
-                            {
-                                "ParameterKey": "JenkinsServicePort",
-                                "ParameterValue": "${env.JenkinsServicePort}"
-                            },
-                            {
-                                "ParameterKey": "KeyPairName",
-                                "ParameterValue": "${env.KeyPairName}"
-                            },
-                            {
-                                "ParameterKey": "NoPublicIp",
-                                "ParameterValue": "${env.NoPublicIp}"
-                            },
-                            {
-                                "ParameterKey": "NoReboot",
-                                "ParameterValue": "${env.NoReboot}"
-                            },
-                            {
-                                "ParameterKey": "NoUpdates",
-                                "ParameterValue": "${env.NoUpdates}"
-                            },
-                            {
-                                "ParameterKey": "ProvisionUser",
-                                "ParameterValue": "${env.ProvisionUser}"
-                            },
-                            {
-                                "ParameterKey": "ProxyPrettyName",
-                                "ParameterValue": "${env.ProxyPrettyName}"
-                            },
-                            {
-                                "ParameterKey": "PypiIndexUrl",
-                                "ParameterValue": "${env.PypiIndexUrl}"
                             },
                             {
                                 "ParameterKey": "RolePrefix",
                                 "ParameterValue": "${env.RolePrefix}"
                             },
                             {
-                                "ParameterKey": "RootVolumeSize",
-                                "ParameterValue": "${env.RootVolumeSize}"
-                            },
-                            {
                                 "ParameterKey": "SecurityGroupTemplate",
                                 "ParameterValue": "${env.SecurityGroupTemplate}"
                             },
                             {
-                                "ParameterKey": "SubnetId",
-                                "ParameterValue": "${env.SubnetId}"
+                                "ParameterKey": "ServiceTld",
+                                "ParameterValue": "${env.ServiceTld}"
                             },
                             {
                                 "ParameterKey": "TargetVPC",
                                 "ParameterValue": "${env.TargetVPC}"
-                            },
-                            {
-                                "ParameterKey": "ToggleCfnInitUpdate",
-                                "ParameterValue": "${env.ToggleCfnInitUpdate}"
-                            },
-                            {
-                                "ParameterKey": "WatchmakerAdminGroups",
-                                "ParameterValue": "${env.WatchmakerAdminGroups}"
-                            },
-                            {
-                                "ParameterKey": "WatchmakerAdminUsers",
-                                "ParameterValue": "${env.WatchmakerAdminUsers}"
-                            },
-                            {
-                                "ParameterKey": "WatchmakerComputerName",
-                                "ParameterValue": "${env.WatchmakerComputerName}"
-                            },
-                            {
-                                "ParameterKey": "WatchmakerConfig",
-                                "ParameterValue": "${env.WatchmakerConfig}"
-                            },
-                            {
-                                "ParameterKey": "WatchmakerEnvironment",
-                                "ParameterValue": "${env.WatchmakerEnvironment}"
-                            },
-                            {
-                                "ParameterKey": "WatchmakerOuPath",
-                                "ParameterValue": "${env.WatchmakerOuPath}"
                             }
                         ]
                    /
