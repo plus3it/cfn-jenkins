@@ -1,5 +1,12 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "SetBucketName": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "BackupBucketName" }, "" ] }
+      ]
+    }
+  },
   "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3, and IAM templates.",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -92,6 +99,7 @@
   },
   "Parameters": {
     "BackupBucketName": {
+      "Default": "",
       "Description": "Logical name of the S3 Bucket used to host Jenkins backups",
       "Type": "String"
     },
@@ -153,7 +161,13 @@
     "S3Res": {
       "Properties": {
         "Parameters": {
-          "JenkinsBackupBucket": { "Ref": "BackupBucketName" }
+          "JenkinsBackupBucket": {
+            "Fn::If": [
+              "SetBucketName",
+              { "Ref": "BackupBucketName" },
+              ""
+            ]
+          }
         },
         "TemplateURL": { "Ref": "BucketTemplate" },
         "TimeoutInMinutes": "10"
