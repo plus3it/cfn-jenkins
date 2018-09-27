@@ -42,7 +42,7 @@ parameters {
 }
 
 stages {
-    stage ('Prepare Instance Environment') {
+    stage ('Prepare Jenkins Workspace') {
         steps {
             deleteDir()
             git branch: "${GitProjBranch}",
@@ -108,7 +108,7 @@ stages {
             }
         }
     }
-    stage ('Launch Jenkins Master EC2 Instance Stack') {
+    stage ('Launch Jenkins ELB Stack') {
         steps {
             withCredentials(
                 [
