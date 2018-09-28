@@ -23,19 +23,14 @@
         },
         {
           "Label": {
-            "default": "Jenkins Setup"
-          },
-          "Parameters": [
-            "JenkinsBackupBucket"
-          ]
-        },
-        {
-          "Label": {
             "default": "Miscellaneous"
           },
           "Parameters": [
-            "ServiceTld",
+            "BackupBucketName",
+            "CloudwatchBucketName",
             "TargetVPC",
+            "JenkinsAgentPort",
+            "ServiceTld",
             "RolePrefix"
           ]
         }

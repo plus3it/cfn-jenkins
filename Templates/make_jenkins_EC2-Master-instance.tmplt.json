@@ -152,12 +152,44 @@
           "Parameters": [
             "AmiId",
             "InstanceType",
+            "RootVolumeSize",
+            "ProvisionUser",
             "InstanceRoleName",
+            "InstanceRoleProfile",
             "KeyPairName",
+            "AdminPubkeyURL",
+            "SubnetId",
+            "PrivateIp",
             "NoPublicIp",
             "NoReboot",
             "NoUpdates",
             "SecurityGroupIds"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins Application Setup"
+          },
+          "Parameters": [
+            "JenkinsOsPrepScriptUrl",
+            "JenkinsAppinstallScriptUrl",
+            "EpelRepo",
+            "JenkinsRepoURL",
+            "JenkinsRepoKeyURL",
+            "JenkinsRpmName",
+            "BackupBucket",
+            "BackupFolder"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins EBS Volume"
+          },
+          "Parameters": [
+            "AppVolumeDevice",
+            "AppVolumeMountPath",
+            "AppVolumeSize",
+            "AppVolumeType"
           ]
         },
         {
@@ -172,26 +204,6 @@
             "WatchmakerComputerName",
             "WatchmakerAdminGroups",
             "WatchmakerAdminUsers"
-          ]
-        },
-        {
-          "Label": {
-            "default": "EC2 Application EBS Volume"
-          },
-          "Parameters": [
-            "AppVolumeDevice",
-            "AppVolumeMountPath",
-            "AppVolumeSize",
-            "AppVolumeType"
-          ]
-        },
-        {
-          "Label": {
-            "default": "Network Configuration"
-          },
-          "Parameters": [
-            "PrivateIp",
-            "SubnetId"
           ]
         },
         {
@@ -355,12 +367,12 @@
     },
     "JenkinsAppinstallScriptUrl": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL of Jenkins application-installer script.",
+      "Description": "URL of Jenkins application-installer script (Must be anonymously fetchable or embed authenticated-fetch information).",
       "Type": "String"
     },
     "JenkinsOsPrepScriptUrl": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL of OS-preparation script.",
+      "Description": "URL of OS-preparation script (Must be anonymously fetchable or embed authenticated-fetch information).",
       "Type": "String"
     },
     "JenkinsRepoKeyURL": {
