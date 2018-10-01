@@ -28,14 +28,15 @@ pipeline {
         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Jenkins git project')
         string(name: 'GitProjBranch', description: 'Project-branch to use from the Jenkins git project')
         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-        string(name: 'BucketTemplate', description: 'link to bucket template')
-        string(name: 'IamRoleTemplate', description: 'Link to IAM template')
-        string(name: 'SecurityGroupTemplate', description: 'Link to SG template')
-        string(name: 'ServiceTld', defaultValue: 'amazonaws.com', description: 'TLD of the IAMable service-name')
-        string(name: 'JenkinsBackupBucket', description: '(Optional: will be randomly named if left un-set) Name to give to S3 Bucket used for longer-term retention of backups')
-        string(name: 'RolePrefix', description: '(Optional) Prefix to apply to IAM role')
-        string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
-        string(name: 'JenkinsAgentPort', defaultValue: '', description: 'TCP Port number that the Jenkins agent-hosts connect through')
+        string(name: 'BackupBucketName', description: 'Logical name of the S3 Bucket used to host Jenkins backups')
+        string(name: 'BucketTemplate', description: 'URL to the child-template for creating the Jenkins S3 backup-bucket.')
+        string(name: 'CloudwatchBucketName', description: 'Name of the S3 Bucket hosting the CloudWatch agent archive files')
+        string(name: 'IamRoleTemplate', description: 'URL to the child-template for creating the Jenkins IAM instance role.')
+        string(name: 'JenkinsAgentPort', description: 'TCP Port number that the Jenkins agent-hosts connect through.')
+        string(name: 'RolePrefix', description: 'Prefix to apply to IAM role to make things a bit prettier (optional).')
+        string(name: 'SecurityGroupTemplate', description: 'URL to the child-template for creating the Jenkins network security-groups.')
+        string(name: 'ServiceTld', defaultValue: 'amazonaws.com', description: 'TLD of the IAMable service-name.')
+        string(name: 'TargetVPC', description: 'ID of the VPC to deploy Jenkins components into.')
     }
 
     stages {
@@ -47,40 +48,44 @@ pipeline {
                     url: "${GitProjUrl}"
                 writeFile file: 'service-infra.parms.json',
                     text: /
-                    [
-                        {
-                            "ParameterKey": "BucketTemplate",
-                            "ParameterValue": "${env.BucketTemplate}"
-                        },
-                        {
-                            "ParameterKey": "IamRoleTemplate",
-                            "ParameterValue": "${env.IamRoleTemplate}"
-                        },
-                        {
-                            "ParameterKey": "SecurityGroupTemplate",
-                            "ParameterValue": "${env.SecurityGroupTemplate}"
-                        },
-                        {
-                            "ParameterKey": "JenkinsAgentPort",
-                            "ParameterValue": "${env.JenkinsAgentPort}"
-                        },
-                        {
-                            "ParameterKey": "JenkinsBackupBucket",
-                            "ParameterValue": "${env.JenkinsBackupBucket}"
-                        },
-                        {
-                            "ParameterKey": "RolePrefix",
-                            "ParameterValue": "${env.RolePrefix}"
-                        },
-                        {
-                            "ParameterKey": "TargetVPC",
-                            "ParameterValue": "${env.TargetVPC}"
-                        },
-                        {
-                            "ParameterKey": "ServiceTld",
-                            "ParameterValue": "${env.ServiceTld}"
-                        }
-                    ]
+                        [
+                            {
+                                "ParameterKey": "BackupBucketName",
+                                "ParameterValue": "${env.BackupBucketName}"
+                            },
+                            {
+                                "ParameterKey": "BucketTemplate",
+                                "ParameterValue": "${env.BucketTemplate}"
+                            },
+                            {
+                                "ParameterKey": "CloudwatchBucketName",
+                                "ParameterValue": "${env.CloudwatchBucketName}"
+                            },
+                            {
+                                "ParameterKey": "IamRoleTemplate",
+                                "ParameterValue": "${env.IamRoleTemplate}"
+                            },
+                            {
+                                "ParameterKey": "JenkinsAgentPort",
+                                "ParameterValue": "${env.JenkinsAgentPort}"
+                            },
+                            {
+                                "ParameterKey": "RolePrefix",
+                                "ParameterValue": "${env.RolePrefix}"
+                            },
+                            {
+                                "ParameterKey": "SecurityGroupTemplate",
+                                "ParameterValue": "${env.SecurityGroupTemplate}"
+                            },
+                            {
+                                "ParameterKey": "ServiceTld",
+                                "ParameterValue": "${env.ServiceTld}"
+                            },
+                            {
+                                "ParameterKey": "TargetVPC",
+                                "ParameterValue": "${env.TargetVPC}"
+                            }
+                        ]
                    /
                 }
             }

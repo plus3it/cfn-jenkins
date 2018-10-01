@@ -3,34 +3,80 @@
   "Conditions": {
     "PrettyRole": {
       "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "RolePrefix" }, "" ] }
+        {
+          "Fn::Equals": [
+            { "Ref": "RolePrefix" },
+            ""
+          ]
+        }
+      ]
+    },
+    "SetupForCloudwatch": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            { "Ref": "CloudwatchBucketName" },
+            ""
+          ]
+        }
       ]
     }
   },
   "Description": "This template sets up the IAM role needed by an Jenkins instance",
+  "Outputs": {
+    "InstanceRoleArn": {
+      "Description": "ARN of the instance role",
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstanceRoleArn"
+        }
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "InstanceRole",
+          "Arn"
+        ]
+      }
+    },
+    "InstanceRoleName": {
+      "Description": "Name of the instance role",
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstanceRoleName"
+        }
+      },
+      "Value": { "Ref": "InstanceRole" }
+    },
+    "InstanceRoleProfile": {
+      "Description": "Profile of the instance role",
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile"
+        }
+      },
+      "Value": { "Ref": "InstanceProfile" }
+    }
+  },
   "Parameters": {
-    "JenkinsBucketArn": {
-      "Description": "Arn of the S3 Bucket used to host Jenkins backups.",
+    "BackupBucketName": {
+      "Description": "ARN of S3 Bucket used to host Jenkins backups",
+      "Type": "String"
+    },
+    "CloudwatchBucketName": {
+      "Description": "Name of the S3 Bucket hosting the CloudWatch agent archive files",
       "Type": "String"
     },
     "RolePrefix": {
       "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
       "Type": "String"
-    },
-    "ServiceTld": {
-      "Default": "amazonaws.com",
-      "Description": "TLD of the IAMable service-name.",
-      "Type": "String"
     }
   },
   "Resources": {
-    "InstancePolicy" : {
-      "Type": "AWS::IAM::ManagedPolicy",
+    "InstancePolicy": {
       "Properties": {
-        "Description" : "Policy to provide instance-level access to needed AWS-level resources.",
-        "Path" : "/",
+        "Description": "Policy to provide instance-level access to needed AWS-level resources",
+        "Path": "/",
         "PolicyDocument": {
-          "Version" : "2012-10-17",
           "Statement": [
             {
               "Action": [
@@ -38,14 +84,30 @@
               ],
               "Effect": "Allow",
               "Resource": [
-                { "Fn::Join" : [ "", [
-                    { "Ref" : "JenkinsBucketArn" },
-                    ""
-                ]]},
-                { "Fn::Join" : [ "", [
-                    { "Ref" : "JenkinsBucketArn" },
-                    "/*"
-                ]]}
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      { "Ref": "AWS::Partition" },
+                      ":s3:::",
+                      { "Ref": "BackupBucketName" },
+                      ""
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      { "Ref": "AWS::Partition" },
+                      ":s3:::",
+                      { "Ref": "BackupBucketName" },
+                      "/*"
+                    ]
+                  ]
+                }
               ],
               "Sid": "BackupsAccess"
             },
@@ -101,18 +163,38 @@
                 "s3:ListMultipartUploadParts"
               ],
               "Effect": "Allow",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    { "Ref": "AWS::Partition" },
-                    ":s3:::ssm-",
-                    { "Ref": "AWS::AccountId" },
-                    "/*"
+              "Resource": [
+                {
+                  "Fn::If": [
+                    "SetupForCloudwatch",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:",
+                          { "Ref": "AWS::Partition" },
+                          ":s3:::",
+                          { "Ref": "CloudwatchBucketName" },
+                          "/*"
+                        ]
+                      ]
+                    },
+                    { "Ref": "AWS::NoValue" }
                   ]
-                ]
-              },
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      { "Ref": "AWS::Partition" },
+                      ":s3:::ssm-",
+                      { "Ref": "AWS::AccountId" },
+                      "/*"
+                    ]
+                  ]
+                }
+              ],
               "Sid": "AcctSsmBucket"
             },
             {
@@ -130,16 +212,27 @@
               },
               "Sid": "GetSsmPkgs"
             }
-          ]
+          ],
+          "Version": "2012-10-17"
         },
-        "Roles": [{ "Ref" : "InstanceRole" }]
-      }
+        "Roles": [
+          { "Ref": "InstanceRole" }
+        ]
+      },
+      "Type": "AWS::IAM::ManagedPolicy"
+    },
+    "InstanceProfile": {
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          { "Ref": "InstanceRole" }
+        ]
+      },
+      "Type": "AWS::IAM::InstanceProfile"
     },
     "InstanceRole": {
-      "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
           "Statement": [
             {
               "Action": "sts:AssumeRole",
@@ -150,18 +243,20 @@
                     ".",
                     [
                       "ec2",
-                      { "Ref": "ServiceTld" }
+                      { "Ref": "AWS::URLSuffix" }
                     ]
                   ]
                 }
               }
             }
-          ]
+          ],
+          "Version": "2012-10-17"
         },
         "Path": "/",
         "RoleName": {
           "Fn::If": [
-            "PrettyRole", {
+            "PrettyRole",
+            {
               "Fn::Join": [
                 "-",
                 [
@@ -173,28 +268,8 @@
             { "Ref": "AWS::NoValue" }
           ]
         }
-      }
-    },
-    "InstanceProfile": {
-      "Type": "AWS::IAM::InstanceProfile",
-      "Properties": {
-        "Path": "/",
-        "Roles": [ { "Ref" : "InstanceRole" } ]
-      }
-    }
-  },
-  "Outputs": {
-    "InstanceRole": {
-      "Value": { "Ref" : "InstanceRole" },
-      "Description" : "Name of the instance role"
-    },
-    "InstanceRoleProfile" : {
-      "Value":  { "Ref" : "InstanceProfile" },
-      "Description" : "Profile of the instance role"
-    },
-    "InstanceRoleArn" : {
-      "Value": { "Fn::GetAtt" : [ "InstanceRole", "Arn" ] },
-      "Description" : "ARN of the instance role"
+      },
+      "Type": "AWS::IAM::Role"
     }
   }
 }

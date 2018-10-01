@@ -52,7 +52,7 @@
             "JenkinsRepoKeyURL",
             "JenkinsOsPrepScriptUrl",
             "JenkinsAppinstallScriptUrl",
-            "JenkinsBackupBucket",
+            "BackupBucket",
             "BackupFolder",
             "BackupCronURL"
           ]
@@ -71,13 +71,11 @@
             "JenkinsPassesSsh"
           ]
         },
-            "ServiceTld",
         {
           "Label": {
             "default": "Miscellaneous"
           },
           "Parameters": [
-            "ServiceTld",
             "TargetVPC",
             "RolePrefix"
           ]
@@ -93,10 +91,24 @@
       },
       "Value": { "Fn::GetAtt": [ "ElbRes", "Outputs.JenkinsElbFqdn" ] }
     },
-    "JenkinsIamRole": {
+    "JenkinsElbRawUrl": {
+      "Description": "Raw FQDN of ELB pointing to Jenkins master",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-ELB-Url" }
+      },
+      "Value": { "Fn::GetAtt": [ "ElbRes", "Outputs.JenkinsElbRawUrl" ] }
+    },
+    "JenkinsIamRoleName": {
       "Description": "Privilege-role assined to master node",
       "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRole"}
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleName"}
+      },
+      "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleName" ] }
+    },
+    "JenkinsIamRoleProfile": {
+      "Description": "Privilege-role assined to master node",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile"}
       },
       "Value": { "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ] }
     },
@@ -105,7 +117,7 @@
       "Export": {
         "Name": { "Fn::Sub": "${AWS::StackName}-Master-InstanceId" }
       },
-      "Value": { "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsInstanceId" ] }
+      "Value": { "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsMasterId" ] }
     },
     "JenkinsS3Bucket": {
       "Description": "Name of S3 bucket used for storing backup data.",
@@ -113,6 +125,13 @@
         "Name": { "Fn::Sub": "${AWS::StackName}-BackupBucket" }
       },
       "Value": { "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ] }
+    },
+    "JenkinsSgApp": {
+      "Description": "Name of the application Security-group.",
+      "Export": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-AppSg" }
+      },
+      "Value": { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] }
     },
     "JenkinsVpcId": {
       "Description": "VPC-ID that Jenkins stack is deployed into.",
@@ -128,15 +147,6 @@
       "Description": "URL the file containing the admin users' SSH public keys.",
       "Type": "String"
     },
-    "AmiDistro": {
-      "AllowedValues": [
-        "CentOS",
-        "RedHat"
-      ],
-      "Default": "CentOS",
-      "Description": "Linux distro of the AMI",
-      "Type": "String"
-    },
     "AmiId": {
       "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
       "Description": "ID of the AMI to launch",
@@ -144,15 +154,11 @@
     },
     "AppVolumeDevice": {
       "AllowedValues": [
-        "",
-        "/dev/xvdf",
-        "/dev/xvdg",
-        "/dev/xvdh",
-        "/dev/xvdi",
-        "/dev/xvdj"
+        "true",
+        "false"
       ],
-      "Default": "",
-      "Description": "Device to mount an extra EBS volume. Leave blank to launch without an extra application volume",
+      "Default": "false",
+      "Description": "Decision on whether to mount an extra EBS volume. Leave as default (\"false\") to launch without an extra application volume",
       "Type": "String"
     },
     "AppVolumeMountPath": {
@@ -163,7 +169,7 @@
     },
     "AppVolumeSize": {
       "ConstraintDescription": "Must be between 1GB and 16384GB.",
-      "Default": "1",
+      "Default": "20",
       "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "MaxValue": "16384",
       "MinValue": "1",
@@ -188,9 +194,9 @@
       "MaxValue": "3600",
       "Type": "Number"
     },
-    "BackupCronURL": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL to the Jenkins backup cron-file",
+    "BackupBucket": {
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+      "Description": "S3 Bucket to host backups of Jenkins config-data (Optional - if left blank, a value will be computed)",
       "Type": "String"
     },
     "BackupFolder": {
@@ -203,9 +209,32 @@
       "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
       "Type": "String"
     },
-    "DnsSuffix": {
-      "ConstraintDescription": "An alphanumeric string to complete the domain portion of the instance's FQDN.",
-      "Description": "Suffix for Jenkins' hostname and DNS record",
+    "CfnBootstrapUtilsUrl": {
+      "AllowedPattern": "^http[s]?://.*\\.tar\\.gz$",
+      "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
+      "Description": "URL to aws-cfn-bootstrap-latest.tar.gz",
+      "Type": "String"
+    },
+    "CfnEndpointUrl": {
+      "AllowedPattern": "^$|^http[s]?://.*$",
+      "Default": "https://cloudformation.us-east-1.amazonaws.com",
+      "Description": "(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
+      "Type": "String"
+    },
+    "CfnGetPipUrl": {
+      "AllowedPattern": "^http[s]?://.*\\.py$",
+      "Default": "https://bootstrap.pypa.io/2.6/get-pip.py",
+      "Description": "URL to get-pip.py",
+      "Type": "String"
+    },
+    "CloudwatchBucketName": {
+      "Description": "Name of the S3 Bucket hosting the CloudWatch agent archive files",
+      "Type": "String"
+    },
+    "CloudWatchAgentUrl": {
+      "AllowedPattern": "^$|^s3://.*$",
+      "Default": "",
+      "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
       "Type": "String"
     },
     "Ec2Template": {
@@ -236,19 +265,32 @@
     },
     "InstanceType": {
       "AllowedValues": [
-        "t2.micro",
-        "t2.small",
+        "t3.medium",
+        "t3.large",
+        "t3.xlarge",
+        "t3.2xlarge",
         "t2.medium",
         "t2.large",
-        "c4.large",
-        "c4.xlarge",
-        "m3.xlarge",
+        "t2.xlarge",
+        "t2.2xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "m5.2xlarge",
+        "m5.4xlarge",
         "m4.large",
         "m4.xlarge",
         "m4.2xlarge",
-        "r3.2xlarge"
+        "m4.4xlarge",
+        "c5.large",
+        "c5.xlarge",
+        "c5.2xlarge",
+        "c5.4xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.4xlarge",
+        "c4.2xlarge"
       ],
-      "Default": "t2.micro",
+      "Default": "t2.xlarge",
       "Description": "Amazon EC2 instance type",
       "Type": "String"
     },
@@ -261,11 +303,6 @@
     "JenkinsAppinstallScriptUrl": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL of Jenkins application-installer script.",
-      "Type": "String"
-    },
-    "JenkinsBackupBucket": {
-      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
-      "Description": "S3 Bucket to host backup files (if left blank, a value will be computed).",
       "Type": "String"
     },
     "JenkinsListenPort": {
@@ -319,8 +356,8 @@
       "Type": "Number"
     },
     "KeyPairName": {
-      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Description": "Public/private key pair allowing an operator to securely connect to instance immediately after instance's SSHD comes online",
+      "Type": "String"
     },
     "NoPublicIp": {
       "AllowedValues": [
@@ -349,17 +386,6 @@
       "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, SystemPrep _always_ installs updates)",
       "Type": "String"
     },
-    "PipIndexFips": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Default": "https://pypi.org/simple/",
-      "Description": "URL of pip index  that is compatible with FIPS 140-2 requirements.",
-      "Type": "String"
-    },
-    "PipRpm": {
-      "Default": "python2-pip",
-      "Description": "Name of preferred pip RPM.",
-      "Type": "String"
-    },
     "ProvisionUser": {
       "AllowedPattern": "[a-z0-9]{6,12}+",
       "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
@@ -371,29 +397,27 @@
       "Description": "A short, human-friendly label to assign to the ELB (no capital letters).",
       "Type": "String"
     },
-    "PyStache": {
-      "Default": "pystache",
-      "Description": "Name of preferred pystache RPM.",
+    "PypiIndexUrl": {
+      "AllowedPattern": "^http[s]?://.*$",
+      "Default": "https://pypi.org/simple",
+      "Description": "URL to the PyPi Index",
       "Type": "String"
     },
     "RolePrefix": {
       "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
       "Type": "String"
     },
+    "RootVolumeSize": {
+      "ConstraintDescription": "Must be between 20GB and 16384GB.",
+      "Default": "20",
+      "Description": "Size in GB of the EBS volume to create. If smaller than AMI defaul, create operation will fail; If larger, root device-volume's partition size will be increased",
+      "MaxValue": "16384",
+      "MinValue": "20",
+      "Type": "Number"
+    },
     "SecurityGroupTemplate": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the child-template for creating the Jenkins network security-groups.",
-      "Type": "String"
-    },
-    "ServerHostname": {
-      "ConstraintDescription": "An alphanumeric string to complete the hostname portion of the instance's FQDN.",
-      "Default": "jenkins-master",
-      "Description": "Suffix for Jenkins' hostname and DNS record",
-      "Type": "String"
-    },
-    "ServiceTld": {
-      "Default": "amazonaws.com",
-      "Description": "TLD of the IAMable service-name.",
       "Type": "String"
     },
     "SubnetId": {
@@ -404,6 +428,53 @@
       "AllowedPattern": "^vpc-[0-9a-f]*$",
       "Description": "ID of the VPC to deploy Jenkins components into.",
       "Type": "AWS::EC2::VPC::Id"
+    },
+    "ToggleCfnInitUpdate": {
+      "AllowedValues": [
+        "A",
+        "B"
+      ],
+      "Default": "A",
+      "Description": "A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence",
+      "Type": "String"
+    },
+    "WatchmakerAdminGroups": {
+      "Default": "",
+      "Description": "(Optional) Colon-separated list of domain groups that should have admin permissions on the EC2 instance",
+      "Type": "String"
+    },
+    "WatchmakerAdminUsers": {
+      "Default": "",
+      "Description": "(Optional) Colon-separated list of domain users that should have admin permissions on the EC2 instance",
+      "Type": "String"
+    },
+    "WatchmakerComputerName": {
+      "Default": "",
+      "Description": "(Optional) Sets the hostname/computername within the OS",
+      "Type": "String"
+    },
+    "WatchmakerConfig": {
+      "AllowedPattern": "^$|^(http[s]?|s3|file)://.*$",
+      "Default": "",
+      "Description": "(Optional) Path to a Watchmaker config file.  The config file path can be a remote source (i.e. http[s]://, s3://) or local directory (i.e. file://)",
+      "Type": "String"
+    },
+    "WatchmakerEnvironment": {
+      "AllowedValues": [
+        "",
+        "dev",
+        "test",
+        "prod"
+      ],
+      "Default": "",
+      "Description": "Environment in which the instance is being deployed",
+      "Type": "String"
+    },
+    "WatchmakerOuPath": {
+      "AllowedPattern": "^$|^(OU=.+,)+(DC=.+)+$",
+      "Default": "",
+      "Description": "(Optional) DN of the OU to place the instance when joining a domain. If blank and \"WatchmakerEnvironment\" enforces a domain join, the instance will be placed in a default container. Leave blank if not joining a domain, or if \"WatchmakerEnvironment\" is \"false\"",
+      "Type": "String"
     }
   },
   "Resources": {
@@ -411,7 +482,6 @@
       "Properties": {
         "Parameters": {
           "AdminPubkeyURL": { "Ref": "AdminPubkeyURL" },
-          "AmiDistro": { "Ref": "AmiDistro" },
           "AmiId": { "Ref": "AmiId" },
           "AppVolumeDevice": { "Ref": "AppVolumeDevice" },
           "AppVolumeMountPath": { "Ref": "AppVolumeMountPath" },
@@ -420,7 +490,6 @@
           "BackupBucket": {
             "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ]
           },
-          "BackupCronURL": { "Ref": "BackupCronURL" },
           "BackupFolder": { "Ref": "BackupFolder" },
           "CfnEndpointUrl": {
             "Fn::Join": [
@@ -428,13 +497,15 @@
               [
                 "https://cloudformation",
                 { "Ref": "AWS::Region" },
-                { "Ref": "ServiceTld" }
+                { "Ref": "AWS::URLSuffix" }
               ]
             ]
           },
-          "DnsSuffix": { "Ref": "DnsSuffix" },
           "EpelRepo": { "Ref": "EpelRepo" },
-          "InstanceRole": {
+          "InstanceRoleName": {
+            "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleName" ]
+          },
+          "InstanceRoleProfile": {
             "Fn::GetAtt": [ "IamRes", "Outputs.InstanceRoleProfile" ]
           },
           "InstanceType": { "Ref": "InstanceType" },
@@ -447,13 +518,16 @@
           "NoPublicIp": { "Ref": "NoPublicIp" },
           "NoReboot": { "Ref": "NoReboot" },
           "NoUpdates": { "Ref": "NoUpdates" },
-          "PipIndexFips": { "Ref": "PipIndexFips" },
-          "PipRpm": { "Ref": "PipRpm" },
+          "PypiIndexUrl": { "Ref": "PypiIndexUrl" },
           "ProvisionUser": { "Ref": "ProvisionUser" },
-          "PyStache": { "Ref": "PyStache" },
           "SecurityGroupIds": { "Fn::GetAtt": [ "SgRes", "Outputs.AppSg" ] },
-          "ServerHostname": { "Ref": "ServerHostname" },
-          "SubnetIds": { "Ref": "SubnetId" }
+          "SubnetId": { "Ref": "SubnetId" },
+          "WatchmakerAdminGroups": { "Ref": "WatchmakerAdminGroups" },
+          "WatchmakerAdminUsers": { "Ref": "WatchmakerAdminUsers" },
+          "WatchmakerComputerName": { "Ref": "WatchmakerComputerName" },
+          "WatchmakerConfig": { "Ref": "WatchmakerConfig" },
+          "WatchmakerEnvironment": { "Ref": "WatchmakerEnvironment" },
+          "WatchmakerOuPath": { "Ref": "WatchmakerOuPath" }
         },
         "TemplateURL": { "Ref": "Ec2Template" }
       },
@@ -470,7 +544,7 @@
             ]
           },
           "JenkinsInstanceId": {
-            "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsInstanceId" ]
+            "Fn::GetAtt": [ "Ec2Res", "Outputs.JenkinsMasterId" ]
           },
           "JenkinsAgentPort": { "Ref": "JenkinsAgentPort" },
           "JenkinsListenPort": { "Ref": "JenkinsListenPort" },
@@ -494,11 +568,11 @@
     "IamRes": {
       "Properties": {
         "Parameters": {
-          "JenkinsBucketArn": {
-            "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketArn" ]
+          "BackupBucketName": {
+            "Fn::GetAtt": [ "S3Res", "Outputs.JenkinsBucketName" ]
           },
-          "RolePrefix": { "Ref": "RolePrefix" },
-          "ServiceTld": { "Ref": "ServiceTld" }
+          "CloudwatchBucketName": { "Ref": "CloudwatchBucketName" },
+          "RolePrefix": { "Ref": "RolePrefix" }
         },
         "TemplateURL": { "Ref": "IamRoleTemplate" },
         "TimeoutInMinutes": "10"
@@ -508,7 +582,7 @@
     "S3Res": {
       "Properties": {
         "Parameters": {
-          "JenkinsBackupBucket": { "Ref": "JenkinsBackupBucket" }
+          "JenkinsBackupBucket": { "Ref": "BackupBucket" }
         },
         "TemplateURL": { "Ref": "BucketTemplate" },
         "TimeoutInMinutes": "10"

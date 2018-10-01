@@ -29,49 +29,56 @@ pipeline {
         string(name: 'GitProjBranch', description: 'Project-branch to use from the Jenkins git project')
         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
         string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
-        string(name: 'JenkinsListenPort', defaultValue: '443', description: 'TCP Port number on which the Jenkins ELB listens for requests')
-        string(name: 'JenkinsListenerCert', defaultValue: '', description: 'Name/ID of the ACM-managed SSL Certificate securing the public listener')
-        string(name: 'JenkinsServicePort', defaultValue: '8080', description: 'TCP Port number that the Jenkins host listens to')
-        string(name: 'JenkinsAgentPort', defaultValue: '', description: 'TCP Port number that the Jenkins agent-hosts connect through')
-        string(name: 'BackendTimeout', defaultValue: '600', description: 'How long (in seconds) back-end connection may be idle before attempting session-cleanup')
-        string(name: 'JenkinsBackupBucket', description: '(Optional: will be randomly named if left un-set) Name to give to S3 Bucket used for longer-term retention of backups')
-        string(name: 'ProxyPrettyName', description: 'A short human friendly label to assign to the ELB (no capital letters)')
-        string(name: 'RolePrefix', description: '(Optional) Prefix to apply to IAM role')
-        string(name: 'HaSubnets', description: 'Subnets to deploy service-elements to: select as many private-subnets as are available in VPC - selecting one from each Availability Zone')
-        string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
+        string(name: 'AdminPubkeyURL', description: 'URL the file containing the admin users' SSH public keys.')
         string(name: 'AmiId', description: 'ID of the AMI to launch')
-        string(name: 'AppVolumeDevice', defaultValue: '', description: 'Whether to mount an extra EBS volume. Leave as default (\"false\") to launch without an extra application volume')
-        string(name: 'AppVolumeMountPath', defaultValue: '/var/lib/jenkins', description: 'Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank')
-        string(name: 'AppVolumeSize', defaultValue: '1', description: 'Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank')
-        string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank')
-        string(name: 'DnsSuffix', description: 'Suffix for Jenkins hostname and DNS record')
-        string(name: 'EpelRepo', defaultValue: 'epel', description: 'An alphanumeric string that represents the EPEL yum repo s label')
-        string(name: 'InstanceType', defaultValue: 't2.micro', description: 'Amazon EC2 instance type')
-        string(name: 'JenkinsAppinstallScriptUrl', description: 'URL of Jenkins application-installer script')
-        string(name: 'JenkinsOsPrepScriptUrl', description: 'URL for OS Prep script')
-        string(name: 'JenkinsPassesSsh', defaultValue: 'false', description: 'Whether to allow SSH passthrough to Jenkins master')
+        string(name: 'AppVolumeDevice', defaultValue: 'false', description: 'Decision on whether to mount an extra EBS volume. Leave as default (\'false\') to launch without an extra application volume')
+        string(name: 'AppVolumeMountPath', defaultValue: '/var/lib/jenkins', description: 'Filesystem path to mount the extra app volume. Ignored if \'AppVolumeDevice\' is blank')
+        string(name: 'AppVolumeSize', defaultValue: '20', description: 'Size in GB of the EBS volume to create. Ignored if \'AppVolumeDevice\' is blank')
+        string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create. Ignored if \'AppVolumeDevice\' is blank')
+        string(name: 'BackendTimeout', defaultValue: '600', description: 'How long - in seconds - back-end connection may be idle before attempting session-cleanup')
+        string(name: 'BackupBucket', description: 'S3 Bucket to host backups of Jenkins config-data (Optional - if left blank, a value will be computed)')
+        string(name: 'BackupFolder', description: 'Folder in S3 Bucket to host backups of Jenkins config-data')
+        string(name: 'BucketTemplate', description: 'URL to the child-template for creating the Jenkins S3 backup-bucket.')
+        string(name: 'CfnBootstrapUtilsUrl', defaultValue: 'https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz', description: 'URL to aws-cfn-bootstrap-latest.tar.gz')
+        string(name: 'CfnEndpointUrl', defaultValue: 'https://cloudformation.us-east-1.amazonaws.com', description: '(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com')
+        string(name: 'CfnGetPipUrl', defaultValue: 'https://bootstrap.pypa.io/2.6/get-pip.py', description: 'URL to get-pip.py')
+        string(name: 'CloudwatchBucketName', description: 'Name of the S3 Bucket hosting the CloudWatch agent archive files')
+        string(name: 'CloudWatchAgentUrl', defaultValue: '', description: '(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip')
+        string(name: 'Ec2Template', description: 'URL to the child-template for creating the Jenkins master node.')
+        string(name: 'ElbTemplate', description: 'URL to the child-template for creating the Jenkins ELB.')
+        string(name: 'EpelRepo', defaultValue: 'epel', description: 'Name of network's EPEL repo.')
+        string(name: 'HaSubnets', description: 'Select three subnets - each from different Availability Zones.')
+        string(name: 'IamRoleTemplate', description: 'URL to the child-template for creating the Jenkins IAM instance role.')
+        string(name: 'InstanceType', defaultValue: 't2.xlarge', description: 'Amazon EC2 instance type')
+        string(name: 'JenkinsAgentPort', description: 'TCP Port number that the Jenkins agent-hosts connect through.')
+        string(name: 'JenkinsAppinstallScriptUrl', description: 'URL of Jenkins application-installer script.')
+        string(name: 'JenkinsListenPort', defaultValue: '443', description: 'TCP Port number that the Jenkins ELB forwards from.')
+        string(name: 'JenkinsListenerCert', defaultValue: '', description: 'Name of ACM-managed SSL Certificate to protect public listener.')
+        string(name: 'JenkinsOsPrepScriptUrl', description: 'URL of OS-preparation script.')
+        string(name: 'JenkinsPassesSsh', defaultValue: 'false', description: 'Whether to allow SSH passthrough to Jenkins master.')
         string(name: 'JenkinsRepoKeyURL', defaultValue: 'https://pkg.jenkins.io/redhat-stable/jenkins.io.key', description: 'URL to the Jenkins yum-repository GPG key')
         string(name: 'JenkinsRepoURL', defaultValue: 'http://pkg.jenkins.io/redhat-stable', description: 'URL to the Jenkins yum-repository')
-        string(name: 'JenkinsRpmName', description: 'Name of Jenkins RPM to install. Include release version if other-than-latest is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc')
-        string(name: 'KeyPairName', description: 'Public/private key pairs allow you to securely connect to your instance after it launches')
-        string(name: 'NoPublicIp', defaultValue: 'true', description: 'Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet')
+        string(name: 'JenkinsRpmName', description: 'Name of Jenkins RPM to install. Include release version if 'other-than-latest' is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc.')
+        string(name: 'JenkinsServicePort', defaultValue: '8080', description: 'TCP Port number that the Jenkins host forwards to.')
+        string(name: 'KeyPairName', description: 'Public/private key pair allowing an operator to securely connect to instance immediately after instance's SSHD comes online')
+        string(name: 'NoPublicIp', defaultValue: 'true', description: 'Controls whether to assign the instance a public IP. Recommended to leave at \'true\' _unless_ launching in a public subnet')
         string(name: 'NoReboot', defaultValue: 'false', description: 'Controls whether to reboot the instance as the last step of cfn-init execution')
         string(name: 'NoUpdates', defaultValue: 'false', description: 'Controls whether to run yum update during a stack update (on the initial instance launch, SystemPrep _always_ installs updates)')
-        string(name: 'PipIndexFips', defaultValue: 'https://pypi.org/simple/', description: 'URL of pip index  that is compatible with FIPS 140-2 requirements')
-        string(name: 'PipRpm', defaultValue: 'python2-pip', description: 'Name of preferred pip RPM')
-        string(name: 'ProvisionUser', defaultValue: 'autojenk', description: 'Default login user account name')
-        string(name: 'PyStache', defaultValue: 'pystache', description: 'Name of preferred pystache RPM')
-        string(name: 'ServerHostname', defaultValue: 'jenkins-master', description: 'Suffix for Jenkins hostname and DNS record')
-        string(name: 'ServiceTld', defaultValue: 'amazonaws.com', description: 'TLD of the IAMable service-name')
-        string(name: 'AdminPubkeyURL', description: 'URL to the administrator pub keys')
-        string(name: 'BackupFolder', description: 'Folder in S3 Bucket to host backups of Jenkins config-data')
-        string(name: 'BucketTemplate', description: 'link to bucket template')
-        string(name: 'Ec2Template', description: 'Link to EC2 template')
-        string(name: 'ElbTemplate', description: 'Link to ELB template')
-        string(name: 'IamRoleTemplate', description: 'Link to IAM template')
-        string(name: 'SecurityGroupTemplate', description: 'Link to SG template')
-        string(name: 'BackupCronURL', description: 'Link to crontab file for backups')
-        string(name: 'SubnetId', description: 'specific subnet to deploy into')
+        string(name: 'ProvisionUser', defaultValue: 'autojenk', description: 'Default login user account name.')
+        string(name: 'ProxyPrettyName', description: 'A short, human-friendly label to assign to the ELB (no capital letters).')
+        string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'URL to the PyPi Index')
+        string(name: 'RolePrefix', description: 'Prefix to apply to IAM role to make things a bit prettier (optional).')
+        string(name: 'RootVolumeSize', defaultValue: '20', description: 'Size in GB of the EBS volume to create. If smaller than AMI defaul, create operation will fail; If larger, root device-volume's partition size will be increased')
+        string(name: 'SecurityGroupTemplate', description: 'URL to the child-template for creating the Jenkins network security-groups.')
+        string(name: 'SubnetId', description: 'Subnet to associate to the Instance')
+        string(name: 'TargetVPC', description: 'ID of the VPC to deploy Jenkins components into.')
+        string(name: 'ToggleCfnInitUpdate', defaultValue: 'A', description: 'A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence')
+        string(name: 'WatchmakerAdminGroups', defaultValue: '', description: '(Optional) Colon-separated list of domain groups that should have admin permissions on the EC2 instance')
+        string(name: 'WatchmakerAdminUsers', defaultValue: '', description: '(Optional) Colon-separated list of domain users that should have admin permissions on the EC2 instance')
+        string(name: 'WatchmakerComputerName', defaultValue: '', description: '(Optional) Sets the hostname/computername within the OS')
+        string(name: 'WatchmakerConfig', defaultValue: '', description: '(Optional) Path to a Watchmaker config file.  The config file path can be a remote source (i.e. http[s]://, s3://) or local directory (i.e. file://)')
+        string(name: 'WatchmakerEnvironment', defaultValue: '', description: 'Environment in which the instance is being deployed')
+        string(name: 'WatchmakerOuPath', defaultValue: '', description: '(Optional) DN of the OU to place the instance when joining a domain. If blank and \'WatchmakerEnvironment\' enforces a domain join, the instance will be placed in a default container. Leave blank if not joining a domain, or if \'WatchmakerEnvironment\' is \'false\'')
     }
 
     stages {
@@ -83,176 +90,8 @@ pipeline {
                     url: "${GitProjUrl}"
                 writeFile file: 'parent.instance.parms.json',
                     text: /
-                    [
-                      {
-                        "ParameterKey": "JenkinsListenPort",
-                        "ParameterValue": "${env.JenkinsListenPort}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsListenerCert",
-                        "ParameterValue": "${env.JenkinsListenerCert}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsServicePort",
-                        "ParameterValue": "${env.JenkinsServicePort}"
-                      },
-                      {
-                        "ParameterKey": "BackendTimeout",
-                        "ParameterValue": "${env.BackendTimeout}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsBackupBucket",
-                        "ParameterValue": "${env.JenkinsBackupBucket}"
-                      },
-                      {
-                        "ParameterKey": "ProxyPrettyName",
-                        "ParameterValue": "${env.ProxyPrettyName}"
-                      },
-                      {
-                        "ParameterKey": "RolePrefix",
-                        "ParameterValue": "${env.RolePrefix}"
-                      },
-                      {
-                        "ParameterKey": "HaSubnets",
-                        "ParameterValue": "${env.HaSubnets}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsAgentPort",
-                        "ParameterValue": "${env.JenkinsAgentPort}"
-                      },
-                      {
-                        "ParameterKey": "AmiId",
-                        "ParameterValue": "${env.AmiId}"
-                      },
-                      {
-                        "ParameterKey": "AppVolumeDevice",
-                        "ParameterValue": "${env.AppVolumeDevice}"
-                      },
-                      {
-                        "ParameterKey": "AppVolumeMountPath",
-                        "ParameterValue": "${env.AppVolumeMountPath}"
-                      },
-                      {
-                        "ParameterKey": "AppVolumeSize",
-                        "ParameterValue": "${env.AppVolumeSize}"
-                      },
-                      {
-                        "ParameterKey": "AppVolumeType",
-                        "ParameterValue": "${env.AppVolumeType}"
-                      },
-                      {
-                        "ParameterKey": "DnsSuffix",
-                        "ParameterValue": "${env.DnsSuffix}"
-                      },
-                      {
-                        "ParameterKey": "EpelRepo",
-                        "ParameterValue": "${env.EpelRepo}"
-                      },
-                      {
-                        "ParameterKey": "InstanceType",
-                        "ParameterValue": "${env.InstanceType}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsAppinstallScriptUrl",
-                        "ParameterValue": "${env.JenkinsAppinstallScriptUrl}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsOsPrepScriptUrl",
-                        "ParameterValue": "${env.JenkinsOsPrepScriptUrl}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsPassesSsh",
-                        "ParameterValue": "${env.JenkinsPassesSsh}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsRepoKeyURL",
-                        "ParameterValue": "${env.JenkinsRepoKeyURL}"
-                      },
-                      {
-                        "ParameterKey": "JenkinsRpmName",
-                        "ParameterValue": "${env.JenkinsRpmName}"
-                      },
-                      {
-                        "ParameterKey": "KeyPairName",
-                        "ParameterValue": "${env.KeyPairName}"
-                      },
-                      {
-                        "ParameterKey": "NoPublicIp",
-                        "ParameterValue": "${env.NoPublicIp}"
-                      },
-                      {
-                        "ParameterKey": "NoReboot",
-                        "ParameterValue": "${env.NoReboot}"
-                      },
-                      {
-                        "ParameterKey": "NoUpdates",
-                        "ParameterValue": "${env.NoUpdates}"
-                      },
-                      {
-                        "ParameterKey": "PipIndexFips",
-                        "ParameterValue": "${env.PipIndexFips}"
-                      },
-                      {
-                        "ParameterKey": "PipRpm",
-                        "ParameterValue": "${env.PipRpm}"
-                      },
-                      {
-                        "ParameterKey": "ProvisionUser",
-                        "ParameterValue": "${env.ProvisionUser}"
-                      },
-                      {
-                        "ParameterKey": "PyStache",
-                        "ParameterValue": "${env.PyStache}"
-                      },
-                      {
-                        "ParameterKey": "ServerHostname",
-                        "ParameterValue": "${env.ServerHostname}"
-                      },
-                      {
-                        "ParameterKey": "ServiceTld",
-                        "ParameterValue": "${env.ServiceTld}"
-                      },
-                      {
-                        "ParameterKey": "AdminPubkeyURL",
-                        "ParameterValue": "${env.AdminPubkeyURL}"
-                      },
-                      {
-                        "ParameterKey": "BackupFolder",
-                        "ParameterValue": "${env.BackupFolder}"
-                      },
-                      {
-                        "ParameterKey": "BucketTemplate",
-                        "ParameterValue": "${env.BucketTemplate}"
-                      },
-                      {
-                        "ParameterKey": "Ec2Template",
-                        "ParameterValue": "${env.Ec2Template}"
-                      },
-                      {
-                        "ParameterKey": "ElbTemplate",
-                        "ParameterValue": "${env.ElbTemplate}"
-                      },
-                      {
-                        "ParameterKey": "IamRoleTemplate",
-                        "ParameterValue": "${env.IamRoleTemplate}"
-                      },
-                      {
-                        "ParameterKey": "SecurityGroupTemplate",
-                        "ParameterValue": "${env.SecurityGroupTemplate}"
-                      },
-                      {
-                        "ParameterKey": "TargetVPC",
-                        "ParameterValue": "${env.TargetVPC}"
-                      },
-                      {
-                      "ParameterKey": "BackupCronURL",
-                      "ParameterValue": "${env.BackupCronURL}"
-                      },
-                      {
-                      "ParameterKey": "SubnetId",
-                      "ParameterValue": "${env.SubnetId}"
-                      }
-                    ]
+                        [
+                        ]
                    /
                 }
             }

@@ -60,12 +60,51 @@ function InstJenkins {
    fi
 }
 
+##
+## See if there's a valid restore archive to rebuild from
+function TryRestore {
+   local RESTOREFILE
+
+   # Restore JENKINS_HOME content (if available)
+   if [[ $(aws s3 ls ${JENKHOMEURL} > /dev/null 2>&1 )$? -gt 0 ]]
+   then
+      printf 'Cannot find a recovery-directory in %s\n' "${JENKHOMEURL}"
+      return
+   fi
+
+   # Lookd for TAR files; use last-written
+   RESTOREFILE="$(aws s3 ls ${JENKHOMEURL}/sync/ | grep tar$ | sort | tail -1 | awk '{print $4}')"
+
+   # Ensure a auto-recovery TAR file was found
+   if [[ -z ${RESTOREFILE} ]]
+   then
+      echo "Could not find an S3-hosted tar-file to auto-recover from"
+      return
+   fi
+
+   # Validate the TAR file
+   printf "Attempting to validate %s... " "${RESTOREFILE}"
+   if [[ $( aws s3 cp "${JENKHOMEURL}/sync/${RESTOREFILE}" - | tar tf - > /dev/null )$? -ne 0 ]]
+   then
+      echo "Errors found. Bailing... "
+      return
+   else
+      echo "File appears clean. Continuing... "
+   fi
+
+   # Try to restore from TAR file
+   echo "Attempting to restore JENKINS_HOME from S3... "
+   /usr/bin/aws s3 cp ${JENKHOMEURL}/sync/${RESTOREFILE} - | tar -C / --checkpoint=100000 -xf -
+
+}
 
 
 # Install Jenkins from RPM/yum
 yum install -y "${JENKRPM}" || err_exit 'Jenkins install failed'
 
-# Ensure that Jenkins uses a safe TEMP-dir
+#####
+## Ensure that Jenkins uses a safe TEMP-dir
+
 printf "Backing up /etc/sysconfig/jenkins... "
 install -b -m 000600 /etc/sysconfig/jenkins /etc/sysconfig/jenkins.bak && \
   echo "Success" || err_exit "Failed to back up /etc/sysconfig/jenkins"
@@ -78,16 +117,14 @@ sed -i '/^JENKINS_JAVA_OPTIONS/s/"$/ -Djava.io.tmpdir=$JENKINS_HOME\/tmp"/' /etc
 printf "Creating Jenkins's safe TEMP-dir... "
 install -d -m 000750 -o jenkins -g jenkins /var/lib/jenkins/tmp && \
   echo "Success" || err_exit "Failed to create Jenkins's safe TEMP-dir"
-     
-# Restore JENKINS_HOME content (if available)
-if [[ $(aws s3 ls ${JENKHOMEURL} > /dev/null 2>&1 )$? -gt 0 ]]
-then
-   printf 'Cannot find a recovery-directory in %s\n' "${JENKHOMEURL}"
-else
-   echo "Attempting to restore JENKINS_HOME from S3... "
-   sudo -H -u jenkins /usr/bin/aws s3 sync --quiet "${JENKHOMEURL}/sync/JENKINS_HOME/" "${JENKDATADIR}" || true
-fi
 
+##
+#####
+
+# Attempt to auto-recover from prior instantiation
+TryRestore
+
+# Verify auto-recovery status
 if [[ -f ${JENKDATADIR}/config.xml ]]
 then
    echo "Restored JENKINS_HOME from S3."
@@ -96,7 +133,7 @@ else
    echo "No restorable S3 content found. Assuming this is a fresh Install."
    FRESHINSTALL=0
 fi
-     
+
 # Start Jenkins
 echo "Starting and enabling Jenkins service... "
 systemctl enable jenkins
