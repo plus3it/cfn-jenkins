@@ -173,7 +173,7 @@
       ]
     }
   },
-  "Description": "This template creates an Autoscaling Group and Launch Configuration that deploys Linux instances with Watchmaker, which applies the DISA STIG.",
+  "Description": "This template deploys ASG-managed, STIG-hardened Linux instances to host the Jenkins service's master node",
   "Mappings": {
     "InstanceTypeCapabilities": {
       "IsGenFive": {
@@ -795,7 +795,21 @@
                 ]
               },
               "watchmaker-install",
+              {
+                "Fn::If": [
+                  "UseOsPrepScript",
+                  "osprep",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "watchmaker-launch",
+              {
+                "Fn::If": [
+                  "UseCfnAppInstaller",
+                  "app-install",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "finalize",
               {
                 "Fn::If": [
@@ -815,7 +829,21 @@
                 ]
               },
               "watchmaker-install",
+              {
+                "Fn::If": [
+                  "UseOsPrepScript",
+                  "osprep",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "watchmaker-update",
+              {
+                "Fn::If": [
+                  "UseCfnAppInstaller",
+                  "app-install",
+                  { "Ref" : "AWS::NoValue" }
+                ]
+              },
               "finalize",
               {
                 "Fn::If": [
