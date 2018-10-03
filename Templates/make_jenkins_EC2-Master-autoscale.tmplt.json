@@ -1312,6 +1312,7 @@
                       "watchmaker --log-level debug",
                       " --log-dir /var/log/watchmaker",
                       " --no-reboot",
+                      " --exclude-states scap*scan",
                       {
                         "Fn::If": [
                           "UseWamConfig",
