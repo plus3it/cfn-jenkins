@@ -259,7 +259,7 @@
     },
     "AppVolumeMountPath": {
       "AllowedPattern": "/.*",
-      "Default": "/opt/data",
+      "Default": "/var/lib/jenkins",
       "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is false",
       "Type": "String"
     },
