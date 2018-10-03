@@ -196,12 +196,43 @@
           "Parameters": [
             "AmiId",
             "InstanceType",
-            "InstanceRole",
+            "RootVolumeSize",
+            "ProvisionUser",
             "KeyPairName",
+            "AdminPubkeyURL",
+            "InstanceRoleName",
+            "InstanceRoleProfile",
+            "SubnetIds",
             "NoPublicIp",
             "NoReboot",
             "NoUpdates",
             "SecurityGroupIds"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins EBS Volume"
+          },
+          "Parameters": [
+            "AppVolumeDevice",
+            "AppVolumeMountPath",
+            "AppVolumeSize",
+            "AppVolumeType"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Jenkins Application Configuration"
+          },
+          "Parameters": [
+            "JenkinsOsPrepScriptUrl",
+            "JenkinsAppinstallScriptUrl",
+            "JenkinsRpmName",
+            "EpelRepo",
+            "JenkinsRepoURL",
+            "JenkinsRepoKeyURL",
+            "BackupBucket",
+            "BackupFolder"
           ]
         },
         {
@@ -212,20 +243,10 @@
             "PypiIndexUrl",
             "WatchmakerConfig",
             "WatchmakerEnvironment",
+            "WatchmakerComputerName",
             "WatchmakerOuPath",
             "WatchmakerAdminGroups",
             "WatchmakerAdminUsers"
-          ]
-        },
-        {
-          "Label": {
-            "default": "EC2 Application EBS Volume"
-          },
-          "Parameters": [
-            "AppVolumeDevice",
-            "AppVolumeMountPath",
-            "AppVolumeSize",
-            "AppVolumeType"
           ]
         },
         {
@@ -240,14 +261,6 @@
             "ScaleUpSchedule",
             "TargetGroupArns",
             "LoadBalancerNames"
-          ]
-        },
-        {
-          "Label": {
-            "default": "Network Configuration"
-          },
-          "Parameters": [
-            "SubnetIds"
           ]
         },
         {
