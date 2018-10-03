@@ -265,7 +265,7 @@
     },
     "AppVolumeSize": {
       "ConstraintDescription": "Must be between 1GB and 16384GB.",
-      "Default": "1",
+      "Default": "20",
       "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is false",
       "MaxValue": "16384",
       "MinValue": "1",
