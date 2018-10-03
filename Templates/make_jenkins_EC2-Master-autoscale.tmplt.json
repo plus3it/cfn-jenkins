@@ -67,6 +67,11 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
       ]
     },
+    "UseKeyPair": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
+      ]
+    },
     "UseLoadBalancerNames": {
       "Fn::Not": [
         {
@@ -376,7 +381,7 @@
     },
     "KeyPairName": {
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Type": "String"
     },
     "LoadBalancerNames": {
       "Default": "",
@@ -1229,7 +1234,13 @@
         },
         "ImageId": { "Ref": "AmiId" },
         "InstanceType": { "Ref": "InstanceType" },
-        "KeyName": { "Ref": "KeyPairName" },
+        "KeyName": {
+          "Fn::If": [
+            "UseKeyPair",
+            { "Ref": "KeyPairName" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "SecurityGroups": { "Ref": "SecurityGroupIds" },
         "UserData": {
           "Fn::Base64": {
