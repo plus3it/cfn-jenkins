@@ -460,6 +460,14 @@
       "Description": "URL to the PyPi Index",
       "Type": "String"
     },
+    "RootVolumeSize": {
+      "ConstraintDescription": "Must be between 20GB and 16384GB.",
+      "Default": "20",
+      "Description": "Size in GB of the EBS volume to create. If smaller than AMI defaul, create operation will fail; If larger, root device-volume's partition size will be increased",
+      "MaxValue": "16384",
+      "MinValue": "20",
+      "Type": "Number"
+    },
     "ScaleDownSchedule": {
       "Default": "",
       "Description": "(Optional) Scheduled Action in cron-format (UTC) to scale down to MinCapacity; ignored if empty or ScaleUpSchedule is unset (E.g. \"0 0 * * *\")",
@@ -1273,6 +1281,7 @@
             "DeviceName": "/dev/sda1",
             "Ebs": {
               "DeleteOnTermination": true,
+              "VolumeSize": { "Ref": "RootVolumeSize" },
               "VolumeType": "gp2"
             }
           },
@@ -1317,6 +1326,12 @@
                 "Content-Disposition: attachment; filename=\"cloud.cfg\"\n",
                 "\n",
                 "#cloud-config\n",
+                "\n",
+                "growpart:\n",
+                "  mode: auto\n",
+                "  devices: [ '/dev/xvda', '/dev/xvda2', '/dev/nvme0n1p2' ]\n",
+                "  ignore_growroot_disabled: false\n",
+                "\n",
                 {
                   "Fn::If": [
                     "CreateAppVolume",
@@ -1363,6 +1378,19 @@
                 "# CFN LaunchConfig Update Toggle: ",
                 { "Ref": "ToggleNewInstances" },
                 "\n\n",
+                "\n",
+                "# Extend any available LVM PVs\n",
+                "if [[ -x $( which pvs ) ]]\n",
+                "then\n",
+                "   LVMPVS=($(pvs --noheadings -o pv_name))\n",
+                "   for PV in \"${LVMPVS[@]}\"\n",
+                "   do\n",
+                "      pvresize ${PV}\n",
+                "   done\n",
+                "\n",
+                "   vgdisplay -s\n",
+                "fi\n",
+                "\n",
                 "# Export AWS ENVs\n",
                 "test -r /etc/aws/models/endpoints.json && export AWS_DATA_PATH=/etc/aws/models || true\n",
                 "export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
