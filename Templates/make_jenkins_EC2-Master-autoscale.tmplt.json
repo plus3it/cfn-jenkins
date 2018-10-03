@@ -24,21 +24,47 @@
         { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
       ]
     },
+    "NotGenFive": {
+      "Fn::Not": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                { "Fn::Select": [
+                    "0",
+                    { "Fn::Split": [ ".", { "Ref": "InstanceType" } ] }
+                  ]
+                },
+                "c5"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                { "Fn::Select": [
+                    "0",
+                    { "Fn::Split": [ ".", { "Ref": "InstanceType" } ] }
+                  ]
+                },
+                "m5"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                { "Fn::Select": [
+                    "0",
+                    { "Fn::Split": [ ".", { "Ref": "InstanceType" } ] }
+                  ]
+                },
+                "t3"
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "Reboot": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
-      ]
-    },
-    "SupportsNvme": {
-      "Fn::Equals": [
-        {
-          "Fn::FindInMap": [
-            "InstanceTypeMap",
-            { "Ref": "InstanceType" },
-            "SupportsNvme"
-          ]
-        },
-        "true"
       ]
     },
     "UseAdminGroups": {
@@ -149,45 +175,14 @@
   },
   "Description": "This template creates an Autoscaling Group and Launch Configuration that deploys Linux instances with Watchmaker, which applies the DISA STIG.",
   "Mappings": {
-    "InstanceTypeMap": {
-      "c4.large": {
-        "SupportsNvme": "false"
+    "InstanceTypeCapabilities": {
+      "IsGenFive": {
+        "ExternDeviceName": "/dev/xvdf",
+        "InternDeviceName": "/dev/nvme1n1"
       },
-      "c4.xlarge": {
-        "SupportsNvme": "false"
-      },
-      "c5.large": {
-        "SupportsNvme": "true"
-      },
-      "c5.xlarge": {
-        "SupportsNvme": "true"
-      },
-      "m4.large": {
-        "SupportsNvme": "false"
-      },
-      "m4.xlarge": {
-        "SupportsNvme": "false"
-      },
-      "m5.large": {
-        "SupportsNvme": "true"
-      },
-      "m5.xlarge": {
-        "SupportsNvme": "true"
-      },
-      "t2.large": {
-        "SupportsNvme": "false"
-      },
-      "t2.medium": {
-        "SupportsNvme": "false"
-      },
-      "t2.micro": {
-        "SupportsNvme": "false"
-      },
-      "t2.small": {
-        "SupportsNvme": "false"
-      },
-      "t2.xlarge": {
-        "SupportsNvme": "false"
+      "PreGenFive": {
+        "ExternDeviceName": "/dev/xvdf",
+        "InternDeviceName": "/dev/xvdf"
       }
     }
   },
@@ -291,18 +286,18 @@
       "Description": "Scale Up Scheduled Action ID",
       "Value": { "Ref": "ScaleUpScheduledAction" }
     },
-    "WatchmakerAutoScalingGroupId": {
+    "JenkinsMasterASGId": {
       "Description": "Autoscaling Group ID",
-      "Value": { "Ref": "WatchmakerAutoScalingGroup" }
+      "Value": { "Ref": "JenkinsMasterASG" }
     },
-    "WatchmakerLaunchConfigId": {
+    "JenkinsMasterLCId": {
       "Description": "Launch Configuration ID",
-      "Value": { "Ref": "WatchmakerLaunchConfig" }
+      "Value": { "Ref": "JenkinsMasterLC" }
     },
-    "WatchmakerLaunchConfigLogGroupName": {
+    "JenkinsMasterLCLogGroupName": {
       "Condition": "InstallCloudWatchAgent",
       "Description": "Log Group Name",
-      "Value": { "Ref": "WatchmakerLaunchConfigLogGroup" }
+      "Value": { "Ref": "JenkinsMasterLCLogGroup" }
     }
   },
   "Parameters": {
@@ -615,7 +610,7 @@
     "ScaleDownScheduledAction": {
       "Condition": "UseScheduledAction",
       "Properties": {
-        "AutoScalingGroupName": { "Ref": "WatchmakerAutoScalingGroup" },
+        "AutoScalingGroupName": { "Ref": "JenkinsMasterASG" },
         "DesiredCapacity": { "Ref": "MinCapacity" },
         "Recurrence": { "Ref": "ScaleDownSchedule" }
       },
@@ -624,13 +619,13 @@
     "ScaleUpScheduledAction": {
       "Condition": "UseScheduledAction",
       "Properties": {
-        "AutoScalingGroupName": { "Ref": "WatchmakerAutoScalingGroup" },
+        "AutoScalingGroupName": { "Ref": "JenkinsMasterASG" },
         "DesiredCapacity": { "Ref": "MaxCapacity" },
         "Recurrence": { "Ref": "ScaleUpSchedule" }
       },
       "Type": "AWS::AutoScaling::ScheduledAction"
     },
-    "WatchmakerAutoScalingGroup": {
+    "JenkinsMasterASG": {
       "CreationPolicy": {
         "ResourceSignal": {
           "Count": { "Ref": "DesiredCapacity" },
@@ -653,7 +648,7 @@
             "EC2"
           ]
         },
-        "LaunchConfigurationName": { "Ref": "WatchmakerLaunchConfig" },
+        "LaunchConfigurationName": { "Ref": "JenkinsMasterLC" },
         "LoadBalancerNames": {
           "Fn::If": [
             "UseLoadBalancerNames",
@@ -693,7 +688,7 @@
         }
       }
     },
-    "WatchmakerLaunchConfig": {
+    "JenkinsMasterLC": {
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "admkey-install": {
@@ -876,7 +871,7 @@
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "WatchmakerLaunchConfigLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
@@ -890,7 +885,7 @@
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "WatchmakerLaunchConfigLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
@@ -904,7 +899,7 @@
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "WatchmakerLaunchConfigLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
@@ -918,7 +913,7 @@
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "WatchmakerLaunchConfigLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
@@ -932,7 +927,7 @@
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "WatchmakerLaunchConfigLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
@@ -962,7 +957,7 @@
                       "cfn-signal -e 0",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource WatchmakerAutoScalingGroup",
+                      " --resource JenkinsMasterASG",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -1152,11 +1147,11 @@
                     [
                       "[cfn-auto-reloader-hook]\n",
                       "triggers=post.update\n",
-                      "path=Resources.WatchmakerLaunchConfig.Metadata\n",
+                      "path=Resources.JenkinsMasterLC.Metadata\n",
                       "action=cfn-init -v -c update",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource WatchmakerLaunchConfig",
+                      " --resource JenkinsMasterLC",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -1553,9 +1548,21 @@
                           "- cloud-init-per instance mkfs-appvolume mkfs -t ext4 ",
                           {
                             "Fn::If": [
-                              "SupportsNvme",
-                              "/dev/nvme1n1",
-                              "/dev/xvdf"
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
                             ]
                           },
                           "\n",
@@ -1563,12 +1570,25 @@
                           "- [ ",
                           {
                             "Fn::If": [
-                              "SupportsNvme",
-                              "/dev/nvme1n1",
-                              "/dev/xvdf"
+                              "NotGenFive",
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "PreGenFive",
+                                  "InternDeviceName"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "InstanceTypeCapabilities",
+                                  "IsGenFive",
+                                  "InternDeviceName"
+                                ]
+                              }
                             ]
                           },
                           ", ",
+
                           { "Ref": "AppVolumeMountPath" },
                           " ]\n"
                         ]
@@ -1608,6 +1628,11 @@
                 "export AWS_DEFAULT_REGION=",
                 { "Ref": "AWS::Region" },
                 "\n\n",
+                "# Add local hostname binding\n",
+                "printf \"%s\\t%s %s\\n\" ",
+                "\"$( ip addr show eth0 | sed -n '/eth0$/p' | sed -e 's/^ *inet *//' -e 's#/.*$##' )\" ",
+                "\"$( hostname -f)\" \"$( hostname -s )\" >> /etc/hosts\n",
+                "\n",
                 "# Get pip\n",
                 "PYPI_URL=",
                 { "Ref": "PypiIndexUrl" },
@@ -1616,6 +1641,14 @@
                 { "Ref": "CfnGetPipUrl" },
                 " | python - --index-url=\"$PYPI_URL\" 'wheel<0.30.0;python_version<\"2.7\"' 'wheel;python_version>=\"2.7\"'",
                 "\n\n",
+                "# Update cfn-bootstrapper hash method\n",
+                "PYVERS=$(python -c 'import sys;",
+                " version=sys.version_info[:2];",
+                " print(\"{0}.{1}\".format(*version))')\n",
+                "sed -i '/^[ \\t][ \\t]*self._etag/s/etag$/None/'",
+                " /usr/lib/python${PYVERS}/site-packages/cfnbootstrap",
+                "/util.py\n",
+                "\n",
                 "# Add pip to path\n",
                 "hash pip 2> /dev/null || ",
                 "PATH=\"${PATH}:/usr/local/bin\"",
@@ -1669,7 +1702,7 @@
                 "cfn-init -v -c launch",
                 " --stack ",
                 { "Ref": "AWS::StackName" },
-                " --resource WatchmakerLaunchConfig",
+                " --resource JenkinsMasterLC",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
@@ -1707,7 +1740,7 @@
                 " cfn-signal -e 1",
                 "  --stack ",
                 { "Ref": "AWS::StackName" },
-                "  --resource WatchmakerAutoScalingGroup",
+                "  --resource JenkinsMasterASG",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
@@ -1751,7 +1784,7 @@
       },
       "Type": "AWS::AutoScaling::LaunchConfiguration"
     },
-    "WatchmakerLaunchConfigLogGroup": {
+    "JenkinsMasterLCLogGroup": {
       "Condition": "InstallCloudWatchAgent",
       "Properties": {
         "LogGroupName": {
