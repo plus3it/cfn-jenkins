@@ -3,7 +3,7 @@
   "Conditions": {
     "AssignInstanceRole": {
       "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "InstanceRole" }, "" ] }
+        { "Fn::Equals": [ { "Ref": "InstanceRoleProfile" }, "" ] }
       ]
     },
     "AssignPublicIp": {
@@ -46,9 +46,19 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerAdminGroups" }, "" ] }
       ]
     },
+    "UseAdminPubkeyURL": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "AdminPubkeyURL" }, "" ] }
+      ]
+    },
     "UseAdminUsers": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "WatchmakerAdminUsers" }, "" ] }
+      ]
+    },
+    "UseCfnAppInstaller": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "JenkinsAppinstallScriptUrl" }, "" ] }
       ]
     },
     "UseCfnUrl": {
@@ -60,6 +70,11 @@
       "Fn::Or": [
         { "Condition": "UseLoadBalancerNames" },
         { "Condition": "UseTargetGroupArns" }
+      ]
+    },
+    "UseComputerName": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "WatchmakerComputerName" }, "" ] }
       ]
     },
     "UseEnvironment": {
@@ -85,6 +100,11 @@
             ""
           ]
         }
+      ]
+    },
+    "UseOsPrepScript": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "JenkinsOsPrepScriptUrl" }, "" ] }
       ]
     },
     "UseOuPath": {
@@ -286,6 +306,11 @@
     }
   },
   "Parameters": {
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^http[s]?://.*|^$",
+      "Description": "(Optional) URL of file containing admin group's SSH public-keys",
+      "Type": "String"
+    },
     "AmiId": {
       "Description": "ID of the AMI to launch",
       "Type": "AWS::EC2::Image::Id"
@@ -301,13 +326,13 @@
     },
     "AppVolumeMountPath": {
       "AllowedPattern": "/.*",
-      "Default": "/opt/data",
+      "Default": "/var/lib/jenkins",
       "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
       "Type": "String"
     },
     "AppVolumeSize": {
       "ConstraintDescription": "Must be between 1GB and 16384GB.",
-      "Default": "1",
+      "Default": "20",
       "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "MaxValue": "16384",
       "MinValue": "1",
@@ -323,6 +348,16 @@
       ],
       "Default": "gp2",
       "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "String"
+    },
+    "BackupBucket": {
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+      "Description": "S3 Bucket to host backups of Jenkins config-data",
+      "Type": "String"
+    },
+    "BackupFolder": {
+      "AllowedPattern": "^[a-zA-Z]*[a-z0-9-]*[a-zA-Z]*$",
+      "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
       "Type": "String"
     },
     "CfnBootstrapUtilsUrl": {
@@ -354,30 +389,80 @@
       "Description": "Desired number of instances in the Autoscaling Group",
       "Type": "Number"
     },
-    "InstanceRole": {
+    "EpelRepo": {
+      "AllowedPattern": "^[a-z][a-z0-9-]*$",
+      "ConstraintDescription": "An alphanumeric string that represents the EPEL yum repo's label.",
+      "Default": "epel",
+      "Description": "Name of network's EPEL repo.",
+      "Type": "String"
+    },
+    "InstanceRoleName": {
       "Default": "",
-      "Description": "(Optional) IAM instance role to apply to the instance(s)",
+      "Description": "(Optional) IAM instance role to apply to the instance",
+      "Type": "String"
+    },
+    "InstanceRoleProfile": {
+      "Default": "",
+      "Description": "(Optional) IAM instance-role profile to apply to the instance(s)",
       "Type": "String"
     },
     "InstanceType": {
       "AllowedValues": [
-        "t2.micro",
-        "t2.small",
+        "t3.medium",
+        "t3.large",
+        "t3.xlarge",
+        "t3.2xlarge",
         "t2.medium",
         "t2.large",
         "t2.xlarge",
-        "c4.large",
-        "c4.xlarge",
+        "t2.2xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "m5.2xlarge",
+        "m5.4xlarge",
         "m4.large",
         "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
         "c5.large",
         "c5.xlarge",
-        "m5.large",
-        "m5.xlarge"
+        "c5.2xlarge",
+        "c5.4xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.4xlarge",
+        "c4.2xlarge"
       ],
-      "Default": "t2.micro",
+      "Default": "t2.xlarge",
       "Description": "Amazon EC2 instance type",
       "Type": "String"
+    },
+    "JenkinsAppinstallScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of Jenkins application-installer script (Must be anonymously fetchable or embed authenticated-fetch information).",
+      "Type": "String"
+    },
+    "JenkinsOsPrepScriptUrl": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Description": "URL of OS-preparation script (Must be anonymously fetchable or embed authenticated-fetch information).",
+      "Type": "String"
+    },
+    "JenkinsRepoKeyURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "https://pkg.jenkins.io/redhat-stable/jenkins.io.key",
+      "Description": "URL to the Jenkins yum-repository GPG key",
+      "Type": "String"
+    },
+    "JenkinsRepoURL": {
+      "AllowedPattern": "^$|^http://.*$|^https://.*$",
+      "Default": "http://pkg.jenkins.io/redhat-stable",
+      "Description": "URL to the Jenkins yum-repository",
+      "Type": "String"
+    },
+    "JenkinsRpmName": {
+      "Description": "Name of Jenkins RPM to install. Include release version if 'other-than-latest' is desired. Example values would be: jenkins, jenkins-2.*, jenkins-X.Y.Z, etc.",
+      "Type": "String",
+      "AllowedPattern": "^jenkins.*$"
     },
     "KeyPairName": {
       "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
@@ -423,6 +508,13 @@
       ],
       "Default": "false",
       "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
+      "Type": "String"
+    },
+    "ProvisionUser": {
+      "AllowedPattern": "[a-z0-9-]{6,12}",
+      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
+      "Default": "ec2-user",
+      "Description": "Name for remote-administration account",
       "Type": "String"
     },
     "PypiIndexUrl": {
@@ -488,6 +580,11 @@
     "WatchmakerAdminUsers": {
       "Default": "",
       "Description": "(Optional) Colon-separated list of domain users that should have admin permissions on the EC2 instance",
+      "Type": "String"
+    },
+    "WatchmakerComputerName": {
+      "Default": "",
+      "Description": "(Optional) Sets the hostname/computername within the OS",
       "Type": "String"
     },
     "WatchmakerConfig": {
@@ -599,6 +696,86 @@
     "WatchmakerLaunchConfig": {
       "Metadata": {
         "AWS::CloudFormation::Init": {
+          "admkey-install": {
+            "commands": {
+              "1-install-keyfile": {
+                "command": "bash -xe /etc/cfn/scripts/admkey.sh"
+              }
+            },
+            "files": {
+              "/etc/cfn/files/AdminKeys.pub": {
+                "source": { "Ref": "AdminPubkeyURL" },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              },
+              "/etc/cfn/scripts/admkey.sh": {
+              "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PROVHOME=$(getent passwd ",
+                      { "Ref": "ProvisionUser" },
+                      " | awk -F\":\" '{print $6}')\n",
+                      "\n",
+                      "install -b -m 000600 -o ",
+                      { "Ref": "ProvisionUser" },
+                      " -g ",
+                      { "Ref": "ProvisionUser" },
+                      " /etc/cfn/files/AdminKeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            }
+          },
+          "app-install": {
+            "files": {
+              "/etc/cfn/scripts/appinstall.sh": {
+                "source": { "Ref": "JenkinsAppinstallScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              },
+              "/etc/cfn/scripts/backups.cron": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "# Daily backup of JENKINS_HOME to S3\n",
+                      "0 23 * * * jenkins tar cf - ",
+                        { "Ref": "AppVolumeMountPath" },
+                        " | aws s3 cp - ",
+                        { "Ref": "BackupBucket" },
+                        "/Backups/daily/$(date '+\\%A').tar\n",
+                      "# Sync JENKINS_HOME to S3 for re-deployments\n",
+                      "*/20 * * * * jenkins tar cf - ",
+                        { "Ref": "AppVolumeMountPath" },
+                        " | aws s3 cp - s3://",
+                        { "Ref": "BackupBucket" },
+                        "/Backups/sync/JENKINS_HOME-$(date '+\\%M').tar\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-appinstall-script": {
+                "command": "bash -xe /etc/cfn/scripts/appinstall.sh"
+              },
+              "2-install-backups_cron": {
+                "command": "install -b -m 000644 -o root -g root /etc/cfn/scripts/backups.cron /etc/cron.d/JenkinsMaster-backups"
+              }
+            }
+          },
           "configSets": {
             "launch": [
               "setup",
@@ -794,7 +971,7 @@
                               "",
                               [
                                 " --role ",
-                                { "Ref": "InstanceRole" }
+                                { "Ref": "InstanceRoleName" }
                               ]
                             ]
                           },
@@ -833,6 +1010,35 @@
               }
             }
           },
+          "osprep": {
+            "files": {
+              "/etc/cfn/scripts/osprep.sh": {
+                "source": { "Ref": "JenkinsOsPrepScriptUrl" },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            },
+            "commands": {
+              "1-osprep-script": {
+                "command": "bash -xe /etc/cfn/scripts/osprep.sh"
+              },
+              "2-packages-from-epel": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "yum --enablerepo=",
+                        { "Ref": "EpelRepo" },
+                        " install -y",
+                        " git",
+                        "\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          },
           "reboot": {
             "commands": {
               "10-reboot": {
@@ -842,6 +1048,48 @@
           },
           "setup": {
             "files": {
+              "/etc/cfn/Jenkins.envs": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "JENKINS_APPINSTALL_SCRIPT=",
+                        { "Ref": "JenkinsAppinstallScriptUrl" },
+                        "\n",
+                      "JENKINS_BACKUP_BUCKET=",
+                        { "Ref": "BackupBucket" },
+                        "\n",
+                      "JENKINS_BACKUP_FOLDER=",
+                        { "Ref": "BackupFolder" },
+                        "\n",
+                      "JENKINS_CFN_ENDPOINT=",
+                        { "Ref": "CfnEndpointUrl" },
+                        "\n",
+                      "JENKINS_EPEL_REPO=",
+                        { "Ref": "EpelRepo" },
+                        "\n",
+                      "JENKINS_HOME_PATH=",
+                        { "Ref": "AppVolumeMountPath" },
+                        "\n",
+                      "JENKINS_OSPREP_SCRIPT=",
+                        { "Ref": "JenkinsOsPrepScriptUrl" },
+                        "\n",
+                      "JENKINS_RPM_NAME=",
+                        { "Ref": "JenkinsRpmName" },
+                        "\n",
+                      "JENKINS_YUM_URL=",
+                        { "Ref": "JenkinsRepoURL" },
+                        "\n",
+                      "JENKINS_YUMKEY_URL=",
+                        { "Ref": "JenkinsRepoKeyURL" },
+                        "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
               "/etc/cfn/cfn-hup.conf": {
                 "content": {
                   "Fn::Join": [
@@ -862,7 +1110,7 @@
                               "",
                               [
                                 "role=",
-                                { "Ref": "InstanceRole" },
+                                { "Ref": "InstanceRoleName" },
                                 "\n"
                               ]
                             ]
@@ -917,7 +1165,7 @@
                               "",
                               [
                                 " --role ",
-                                { "Ref": "InstanceRole" }
+                                { "Ref": "InstanceRoleName" }
                               ]
                             ]
                           },
@@ -948,6 +1196,27 @@
                 },
                 "group": "root",
                 "mode": "000400",
+                "owner": "root"
+              },
+              "/etc/yum.repos.d/jenkins.repo": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[jenkins]\n",
+                      "gpgkey = ",
+                      { "Ref": "JenkinsRepoKeyURL" },
+                      "\n",
+                      "enabled = 1\n",
+                      "baseurl = ",
+                      { "Ref": "JenkinsRepoURL" },
+                      "\n",
+                      "name = Jenkins CI service-repository\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000444",
                 "owner": "root"
               },
               "/etc/cfn/scripts/watchmaker-install.sh": {
@@ -1228,7 +1497,7 @@
         "IamInstanceProfile": {
           "Fn::If": [
             "AssignInstanceRole",
-            { "Ref": "InstanceRole" },
+            { "Ref": "InstanceRoleProfile" },
             { "Ref": "AWS::NoValue" }
           ]
         },
@@ -1257,6 +1526,16 @@
                 "Content-Disposition: attachment; filename=\"cloud.cfg\"\n",
                 "\n",
                 "#cloud-config\n",
+                "\n",
+                "system_info:\n",
+                "  default_user:\n",
+                "    name: ",
+                     { "Ref": "ProvisionUser" },
+                     "\n",
+                "\n",
+                "hostname: ",
+                { "Ref": "WatchmakerComputerName" },
+                "\n",
                 "\n",
                 "growpart:\n",
                 "  mode: auto\n",
@@ -1399,7 +1678,7 @@
                         "",
                         [
                           " --role ",
-                          { "Ref": "InstanceRole" }
+                          { "Ref": "InstanceRoleName" }
                         ]
                       ]
                     },
@@ -1437,7 +1716,7 @@
                         "",
                         [
                           " --role ",
-                          { "Ref": "InstanceRole" }
+                          { "Ref": "InstanceRoleName" }
                         ]
                       ]
                     },
