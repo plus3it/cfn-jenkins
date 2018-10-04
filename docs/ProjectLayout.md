@@ -58,16 +58,32 @@ This directory (hierarchy) contains Jenkins pipeline definitions to allow placin
 
 ##### Master
 
-This directory containes the Jenkins pipeline definitions used to place the CFn-template used for deploying Jenkins Master server elements under Jenkins control:
+This directory contains the Jenkins pipeline definitions used to place the CFn-templates used for deploying Jenkins Master server elements under Jenkins control:
 
-EC2-Autoscale.groovy
-EC2-Instance.groovy
-Infra-layers.groovy
-Master-Elbv1.groovy
-Parent-Full-Instance.groovy
-S3-MigrationHelper.groovy
+###### Template-drivers:
+
+* [`EC2-Autoscale.groovy`](/Deployment/Jenkins/master/EC2-Autoscale.groovy): Jenkins pipeline-definition to drive the `make_jenkins_EC2-Master-Linux-autoscale.tmplt.json` CFn template.
+* [`EC2-Instance.groovy`](/Deployment/Jenkins/master/EC2-Instance.groovy): Jenkins pipeline-definition to drive the `make_jenkins_EC2-Master-Linux-instance.tmplt.json` CFn template.
+* [`Infra-layers.groovy`](/Deployment/Jenkins/master/Infra-layers.groovy): Jenkins pipeline-definition to drive the `make_jenkins_infra.tmplt.json` CFn template.
+* [`Master-Elbv1.groovy`](/Deployment/Jenkins/master/Master-Elbv1.groovy): Jenkins pipeline-definition to drive the `make_jenkins_ELBv1-pub-autoscale.tmplt.json` CFn template.
+* [`Parent-Full-Instance.groovy`](/Deployment/Jenkins/master/Parent-Full-Instance.groovy): Jenkins pipeline-definition to drive the `make_jenkins_parent-instance.tmplt.json` CFn template.
+
+###### "Helpers":
+
+* [`S3-MigrationHelper.groovy`](/Deployment/Jenkins/master/S3-MigrationHelper.groovy): Jenkins pipeline-definition to facilitate the migration of backup data from an previously-existing S3 bucket to a new/empty S3 bucket
 
 ##### Agent
+
+This directory contains the Jenkins pipeline definitions used to place the CFn-templates used for deploying Jenkins Agent server elements under Jenkins control:
+
+###### Template-drivers:
+
+* [`agent-instance.groovy`](/Deployment/Jenkins/agent/agent-instance.groovy): Jenkins pipeline-definition to drive the `make_jenkins_EC2-Agent-Linux-instance.tmplt.json` CFn template.
+
+
+###### "Helpers":
+
+Currently, there are not any "helper" definitions for Agent nodes.
 
 #### TBD
 
