@@ -11,11 +11,6 @@
         { "Fn::Equals": [ { "Ref": "NoPublicIp" }, "true" ] }
       ]
     },
-    "AssignStaticPrivateIp": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "PrivateIp" }, "" ] }
-      ]
-    },
     "CreateAppVolume": {
       "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "true" ]
     },
@@ -67,7 +62,6 @@
         }
       ]
     },
-
     "Reboot": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
@@ -98,6 +92,12 @@
         { "Fn::Equals": [ { "Ref": "CfnEndpointUrl" }, "" ] }
       ]
     },
+    "UseElbHealthCheck": {
+      "Fn::Or": [
+        { "Condition": "UseLoadBalancerNames" },
+        { "Condition": "UseTargetGroupArns" }
+      ]
+    },
     "UseComputerName": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "WatchmakerComputerName" }, "" ] }
@@ -113,6 +113,21 @@
         { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
       ]
     },
+    "UseLoadBalancerNames": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Join": [
+                "",
+                { "Ref": "LoadBalancerNames" }
+              ]
+            },
+            ""
+          ]
+        }
+      ]
+    },
     "UseOsPrepScript": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "JenkinsOsPrepScriptUrl" }, "" ] }
@@ -123,13 +138,42 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerOuPath" }, "" ] }
       ]
     },
+    "UseScheduledAction": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            { "Fn::Equals": [ { "Ref": "ScaleUpSchedule" }, "" ] }
+          ]
+        },
+        {
+          "Fn::Not": [
+            { "Fn::Equals": [ { "Ref": "ScaleDownSchedule" }, "" ] }
+          ]
+        }
+      ]
+    },
+    "UseTargetGroupArns": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Join": [
+                "",
+                { "Ref": "TargetGroupArns" }
+              ]
+            },
+            ""
+          ]
+        }
+      ]
+    },
     "UseWamConfig": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "WatchmakerConfig" }, "" ] }
       ]
     }
   },
-  "Description": "This template deploys a STIG-hardened Linux instance to host the Jenkins service's master node",
+  "Description": "This template deploys ASG-managed, STIG-hardened Linux instances to host the Jenkins service's master node",
   "Mappings": {
     "InstanceTypeCapabilities": {
       "IsGenFive": {
@@ -154,31 +198,15 @@
             "InstanceType",
             "RootVolumeSize",
             "ProvisionUser",
-            "InstanceRoleName",
-            "InstanceRoleProfile",
             "KeyPairName",
             "AdminPubkeyURL",
-            "SubnetId",
-            "PrivateIp",
+            "InstanceRoleName",
+            "InstanceRoleProfile",
+            "SubnetIds",
             "NoPublicIp",
             "NoReboot",
             "NoUpdates",
             "SecurityGroupIds"
-          ]
-        },
-        {
-          "Label": {
-            "default": "Jenkins Application Setup"
-          },
-          "Parameters": [
-            "JenkinsOsPrepScriptUrl",
-            "JenkinsAppinstallScriptUrl",
-            "EpelRepo",
-            "JenkinsRepoURL",
-            "JenkinsRepoKeyURL",
-            "JenkinsRpmName",
-            "BackupBucket",
-            "BackupFolder"
           ]
         },
         {
@@ -194,16 +222,45 @@
         },
         {
           "Label": {
+            "default": "Jenkins Application Configuration"
+          },
+          "Parameters": [
+            "JenkinsOsPrepScriptUrl",
+            "JenkinsAppinstallScriptUrl",
+            "JenkinsRpmName",
+            "EpelRepo",
+            "JenkinsRepoURL",
+            "JenkinsRepoKeyURL",
+            "BackupBucket",
+            "BackupFolder"
+          ]
+        },
+        {
+          "Label": {
             "default": "EC2 Watchmaker Configuration"
           },
           "Parameters": [
             "PypiIndexUrl",
             "WatchmakerConfig",
             "WatchmakerEnvironment",
-            "WatchmakerOuPath",
             "WatchmakerComputerName",
+            "WatchmakerOuPath",
             "WatchmakerAdminGroups",
             "WatchmakerAdminUsers"
+          ]
+        },
+        {
+          "Label": {
+            "default": "AutoScale Configuration"
+          },
+          "Parameters": [
+            "DesiredCapacity",
+            "MinCapacity",
+            "MaxCapacity",
+            "ScaleDownSchedule",
+            "ScaleUpSchedule",
+            "TargetGroupArns",
+            "LoadBalancerNames"
           ]
         },
         {
@@ -215,27 +272,45 @@
             "CfnGetPipUrl",
             "CfnBootstrapUtilsUrl",
             "CloudWatchAgentUrl",
-            "ToggleCfnInitUpdate"
+            "ToggleCfnInitUpdate",
+            "ToggleNewInstances"
           ]
         }
       ],
       "ParameterLabels": {
         "ToggleCfnInitUpdate": {
           "default": "Force Cfn Init Update"
+        },
+        "ToggleNewInstances": {
+          "default": "Force New Instances"
         }
       }
     },
-    "Version": "1.5.2"
+    "Version": "1.5.4"
   },
   "Outputs": {
-    "JenkinsMasterId": {
-      "Description": "Instance ID",
-      "Value": { "Ref": "JenkinsMaster" }
+    "ScaleDownScheduledAction": {
+      "Condition": "UseScheduledAction",
+      "Description": "Scale Down Scheduled Action ID",
+      "Value": { "Ref": "ScaleDownScheduledAction" }
     },
-    "JenkinsMasterLogGroupName": {
+    "ScaleUpScheduledAction": {
+      "Condition": "UseScheduledAction",
+      "Description": "Scale Up Scheduled Action ID",
+      "Value": { "Ref": "ScaleUpScheduledAction" }
+    },
+    "JenkinsMasterASGId": {
+      "Description": "Autoscaling Group ID",
+      "Value": { "Ref": "JenkinsMasterASG" }
+    },
+    "JenkinsMasterLCId": {
+      "Description": "Launch Configuration ID",
+      "Value": { "Ref": "JenkinsMasterLC" }
+    },
+    "JenkinsMasterLCLogGroupName": {
       "Condition": "InstallCloudWatchAgent",
       "Description": "Log Group Name",
-      "Value": { "Ref": "JenkinsMasterLogGroup" }
+      "Value": { "Ref": "JenkinsMasterLCLogGroup" }
     }
   },
   "Parameters": {
@@ -254,19 +329,19 @@
         "false"
       ],
       "Default": "false",
-      "Description": "Decision on whether to mount an extra EBS volume. Leave as default (\"false\") to launch without an extra application volume",
+      "Description": "Decision whether to mount an extra EBS volume. Leave as default (\"false\") to launch without an extra application volume",
       "Type": "String"
     },
     "AppVolumeMountPath": {
       "AllowedPattern": "/.*",
       "Default": "/var/lib/jenkins",
-      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is false",
+      "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is blank",
       "Type": "String"
     },
     "AppVolumeSize": {
       "ConstraintDescription": "Must be between 1GB and 16384GB.",
       "Default": "20",
-      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is false",
+      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "MaxValue": "16384",
       "MinValue": "1",
       "Type": "Number"
@@ -280,7 +355,7 @@
         "standard"
       ],
       "Default": "gp2",
-      "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is false",
+      "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "Type": "String"
     },
     "BackupBucket": {
@@ -316,6 +391,11 @@
       "Default": "",
       "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
       "Type": "String"
+    },
+    "DesiredCapacity": {
+      "Default": "1",
+      "Description": "Desired number of instances in the Autoscaling Group",
+      "Type": "Number"
     },
     "EpelRepo": {
       "AllowedPattern": "^[a-z][a-z0-9-]*$",
@@ -393,8 +473,23 @@
       "AllowedPattern": "^jenkins.*$"
     },
     "KeyPairName": {
-      "Description": "Public/private key pair allowing an operator to securely connect to instance immediately after instance's SSHD comes online",
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
       "Type": "String"
+    },
+    "LoadBalancerNames": {
+      "Default": "",
+      "Description": "Comma-separated string of Classic ELB Names to associate with the Autoscaling Group; conflicts with TargetGroupArns",
+      "Type": "CommaDelimitedList"
+    },
+    "MaxCapacity": {
+      "Default": "2",
+      "Description": "Maximum number of instances in the Autoscaling Group",
+      "Type": "Number"
+    },
+    "MinCapacity": {
+      "Default": "1",
+      "Description": "Minimum number of instances in the Autoscaling Group",
+      "Type": "Number"
     },
     "NoPublicIp": {
       "AllowedValues": [
@@ -423,11 +518,6 @@
       "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
       "Type": "String"
     },
-    "PrivateIp": {
-      "Default": "",
-      "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
-      "Type": "String"
-    },
     "ProvisionUser": {
       "AllowedPattern": "[a-z0-9-]{6,12}",
       "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
@@ -449,13 +539,28 @@
       "MinValue": "20",
       "Type": "Number"
     },
+    "ScaleDownSchedule": {
+      "Default": "",
+      "Description": "(Optional) Scheduled Action in cron-format (UTC) to scale down to MinCapacity; ignored if empty or ScaleUpSchedule is unset (E.g. \"0 0 * * *\")",
+      "Type": "String"
+    },
+    "ScaleUpSchedule": {
+      "Default": "",
+      "Description": "(Optional) Scheduled Action in cron-format (UTC) to scale up to MaxCapacity; ignored if empty or ScaleDownSchedule is unset (E.g. \"0 10 * * Mon-Fri\")",
+      "Type": "String"
+    },
     "SecurityGroupIds": {
-      "Description": "List of security groups to apply to the instance",
+      "Description": "List of security groups to apply to the instance(s)",
       "Type": "List<AWS::EC2::SecurityGroup::Id>"
     },
-    "SubnetId": {
-      "Description": "ID of the subnet to assign to the instance",
-      "Type": "AWS::EC2::Subnet::Id"
+    "SubnetIds": {
+      "Description": "List of subnets to associate to the Autoscaling Group",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "TargetGroupArns": {
+      "Default": "",
+      "Description": "Comma-separated string of Target Group ARNs to associate with the Autoscaling Group; conflicts with LoadBalancerNames",
+      "Type": "CommaDelimitedList"
     },
     "ToggleCfnInitUpdate": {
       "AllowedValues": [
@@ -464,6 +569,15 @@
       ],
       "Default": "A",
       "Description": "A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence",
+      "Type": "String"
+    },
+    "ToggleNewInstances": {
+      "AllowedValues": [
+        "A",
+        "B"
+      ],
+      "Default": "A",
+      "Description": "A/B toggle that forces a change to instance userdata, triggering new instances via the Autoscale update policy",
       "Type": "String"
     },
     "WatchmakerAdminGroups": {
@@ -506,13 +620,88 @@
     }
   },
   "Resources": {
-    "JenkinsMaster": {
+    "ScaleDownScheduledAction": {
+      "Condition": "UseScheduledAction",
+      "Properties": {
+        "AutoScalingGroupName": { "Ref": "JenkinsMasterASG" },
+        "DesiredCapacity": { "Ref": "MinCapacity" },
+        "Recurrence": { "Ref": "ScaleDownSchedule" }
+      },
+      "Type": "AWS::AutoScaling::ScheduledAction"
+    },
+    "ScaleUpScheduledAction": {
+      "Condition": "UseScheduledAction",
+      "Properties": {
+        "AutoScalingGroupName": { "Ref": "JenkinsMasterASG" },
+        "DesiredCapacity": { "Ref": "MaxCapacity" },
+        "Recurrence": { "Ref": "ScaleUpSchedule" }
+      },
+      "Type": "AWS::AutoScaling::ScheduledAction"
+    },
+    "JenkinsMasterASG": {
       "CreationPolicy": {
         "ResourceSignal": {
-          "Count": "1",
-          "Timeout": "PT45M"
+          "Count": { "Ref": "DesiredCapacity" },
+          "Timeout": "PT30M"
         }
       },
+      "Properties": {
+        "DesiredCapacity": { "Ref": "DesiredCapacity" },
+        "HealthCheckGracePeriod": {
+          "Fn::If": [
+            "UseElbHealthCheck",
+            3600,
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
+        "HealthCheckType": {
+          "Fn::If": [
+            "UseElbHealthCheck",
+            "ELB",
+            "EC2"
+          ]
+        },
+        "LaunchConfigurationName": { "Ref": "JenkinsMasterLC" },
+        "LoadBalancerNames": {
+          "Fn::If": [
+            "UseLoadBalancerNames",
+            { "Ref": "LoadBalancerNames" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
+        "MaxSize": { "Ref": "MaxCapacity" },
+        "MinSize": { "Ref": "MinCapacity" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "PropagateAtLaunch": true,
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  { "Ref": "AWS::StackName" }
+                ]
+              ]
+            }
+          }
+        ],
+        "TargetGroupARNs": {
+          "Fn::If": [
+            "UseTargetGroupArns",
+            { "Ref": "TargetGroupArns" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
+        "VPCZoneIdentifier": { "Ref": "SubnetIds" }
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "UpdatePolicy": {
+        "AutoScalingReplacingUpdate": {
+          "WillReplace": "true"
+        }
+      }
+    },
+    "JenkinsMasterLC": {
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "admkey-install": {
@@ -600,13 +789,6 @@
               "setup",
               {
                 "Fn::If": [
-                  "UseAdminPubkeyURL",
-                  "admkey-install",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
-              {
-                "Fn::If": [
                   "InstallCloudWatchAgent",
                   "cw-agent-install",
                   { "Ref": "AWS::NoValue" }
@@ -639,13 +821,6 @@
             ],
             "update": [
               "setup",
-              {
-                "Fn::If": [
-                  "UseAdminPubkeyURL",
-                  "admkey-install",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
               {
                 "Fn::If": [
                   "InstallUpdates",
@@ -737,75 +912,75 @@
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "JenkinsMasterLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
                       "\",\n",
                       "            \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\",\n",
                       "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
+                      " },\n",
                       "          {\n",
                       "            \"file_path\": \"/var/log/cfn-init.log\",\n",
                       "            \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "JenkinsMasterLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
                       "\",\n",
                       "            \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n",
                       "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
+                      " },\n",
                       "          {\n",
                       "            \"file_path\": \"/var/log/messages\",\n",
                       "            \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "JenkinsMasterLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
                       "\",\n",
                       "            \"log_stream_name\": \"messages_logs_{instance_id}\",\n",
                       "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
+                      " },\n",
                       "          {\n",
                       "            \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
                       "            \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "JenkinsMasterLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
                       "\",\n",
                       "            \"log_stream_name\": \"watchmaker_logs_{instance_id}\",\n",
                       "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
+                      " },\n",
                       "          {\n",
                       "            \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\",\n",
                       "            \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
-                          { "Ref": "JenkinsMasterLogGroup" },
+                          { "Ref": "JenkinsMasterLCLogGroup" },
                           { "Ref": "AWS::NoValue" }
                         ]
                       },
                       "\",\n",
                       "            \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\",\n",
                       "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          }\n",
+                      " }\n",
                       "        ]\n",
-                      "      }\n",
-                      "    },\n",
+                      " }\n",
+                      " },\n",
                       "    \"log_stream_name\": \"default_logs_{instance_id}\"\n",
-                      "  }\n",
+                      " }\n",
                       "}\n"
                     ]
                   ]
@@ -823,7 +998,7 @@
                       "cfn-signal -e 0",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource JenkinsMaster",
+                      " --resource JenkinsMasterASG",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -1013,11 +1188,11 @@
                     [
                       "[cfn-auto-reloader-hook]\n",
                       "triggers=post.update\n",
-                      "path=Resources.JenkinsMaster.Metadata\n",
+                      "path=Resources.JenkinsMasterLC.Metadata\n",
                       "action=cfn-init -v -c update",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource JenkinsMaster",
+                      " --resource JenkinsMasterLC",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -1188,22 +1363,6 @@
                       },
                       {
                         "Fn::If": [
-                          "UseComputerName",
-                          {
-                            "Fn::Join": [
-                              "",
-                              [
-                                " --computer-name \"",
-                                { "Ref": "WatchmakerComputerName" },
-                                "\""
-                              ]
-                            ]
-                          },
-                          ""
-                        ]
-                      },
-                      {
-                        "Fn::If": [
                           "UseAdminGroups",
                           {
                             "Fn::Join": [
@@ -1290,24 +1449,8 @@
                             "Fn::Join": [
                               "",
                               [
-                                " --oupath \"",
+                                " --ou-path \"",
                                 { "Ref": "WatchmakerOuPath" },
-                                "\""
-                              ]
-                            ]
-                          },
-                          ""
-                        ]
-                      },
-                      {
-                        "Fn::If": [
-                          "UseComputerName",
-                          {
-                            "Fn::Join": [
-                              "",
-                              [
-                                " --computer-name \"",
-                                { "Ref": "WatchmakerComputerName" },
                                 "\""
                               ]
                             ]
@@ -1357,6 +1500,13 @@
         "ToggleCfnInitUpdate": { "Ref": "ToggleCfnInitUpdate" }
       },
       "Properties": {
+        "AssociatePublicIpAddress": {
+          "Fn::If": [
+            "AssignPublicIp",
+            true,
+            false
+          ]
+        },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
@@ -1370,27 +1520,9 @@
             "Fn::If": [
               "CreateAppVolume",
               {
-                "DeviceName": {
-                  "Fn::If": [
-                    "NotGenFive",
-                    {
-                      "Fn::FindInMap": [
-                         "InstanceTypeCapabilities",
-                         "PreGenFive",
-                         "ExternDeviceName"
-                      ]
-                    },
-                    {
-                      "Fn::FindInMap": [
-                        "InstanceTypeCapabilities",
-                        "IsGenFive",
-                        "ExternDeviceName"
-                      ]
-                    }
-                  ]
-                },
+                "DeviceName": "/dev/xvdf",
                 "Ebs": {
-                  "DeleteOnTermination": "true",
+                  "DeleteOnTermination": true,
                   "VolumeSize": { "Ref": "AppVolumeSize" },
                   "VolumeType": { "Ref": "AppVolumeType" }
                 }
@@ -1415,40 +1547,7 @@
             { "Ref": "AWS::NoValue" }
           ]
         },
-        "NetworkInterfaces": [
-          {
-            "AssociatePublicIpAddress": {
-              "Fn::If": [
-                "AssignPublicIp",
-                true,
-                false
-              ]
-            },
-            "DeviceIndex": "0",
-            "GroupSet": { "Ref": "SecurityGroupIds" },
-            "PrivateIpAddress": {
-              "Fn::If": [
-                "AssignStaticPrivateIp",
-                { "Ref": "PrivateIp" },
-                { "Ref": "AWS::NoValue" }
-              ]
-            },
-            "SubnetId": { "Ref": "SubnetId" }
-          }
-        ],
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  { "Ref": "AWS::StackName" }
-                ]
-              ]
-            }
-          }
-        ],
+        "SecurityGroups": { "Ref": "SecurityGroupIds" },
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -1548,6 +1647,9 @@
                 "Content-Disposition: attachment; filename=\"script.sh\"\n",
                 "\n",
                 "#!/bin/bash -xe\n\n",
+                "# CFN LaunchConfig Update Toggle: ",
+                { "Ref": "ToggleNewInstances" },
+                "\n\n",
                 "\n",
                 "# Extend any available LVM PVs\n",
                 "if [[ -x $( which pvs ) ]]\n",
@@ -1602,10 +1704,10 @@
                 "yum -y install gcc python-devel libffi-devel openssl-devel\n",
                 "pip install",
                 " --index-url=\"$PYPI_URL\"",
-                " --upgrade cffi\n",
+                " --upgrade 'pycparser<2.19;python_version<\"2.7\"' cffi\n",
                 "pip install",
                 " --index-url=\"$PYPI_URL\"",
-                " --upgrade 'cryptography<2.2;python_version<\"2.7\"' 'cryptography;python_version>=\"2.7\"'",
+                " --upgrade 'pycparser<2.19;python_version<\"2.7\"' 'cryptography<2.2;python_version<\"2.7\"' 'cryptography;python_version>=\"2.7\"'",
                 "\n\n",
                 "if [[ $(rpm --quiet -q aws-cfn-bootstrap || pip show --quiet aws-cfn-bootstrap)$? -ne 0 ]]\n",
                 "then\n",
@@ -1642,7 +1744,7 @@
                 "cfn-init -v -c launch",
                 " --stack ",
                 { "Ref": "AWS::StackName" },
-                " --resource JenkinsMaster",
+                " --resource JenkinsMasterLC",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
@@ -1680,7 +1782,7 @@
                 " cfn-signal -e 1",
                 "  --stack ",
                 { "Ref": "AWS::StackName" },
-                "  --resource JenkinsMaster",
+                "  --resource JenkinsMasterASG",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
@@ -1722,9 +1824,9 @@
           }
         }
       },
-      "Type": "AWS::EC2::Instance"
+      "Type": "AWS::AutoScaling::LaunchConfiguration"
     },
-    "JenkinsMasterLogGroup": {
+    "JenkinsMasterLCLogGroup": {
       "Condition": "InstallCloudWatchAgent",
       "Properties": {
         "LogGroupName": {
