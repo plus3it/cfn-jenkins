@@ -108,6 +108,11 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
       ]
     },
+    "UseGroupKeyFile": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "AdminPubkeyURL" }, "" ] }
+      ]
+    },
     "UseKeyPair": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
@@ -789,6 +794,13 @@
               "setup",
               {
                 "Fn::If": [
+                  "UseGroupKeyFile",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
+              {
+                "Fn::If": [
                   "InstallCloudWatchAgent",
                   "cw-agent-install",
                   { "Ref": "AWS::NoValue" }
@@ -821,6 +833,13 @@
             ],
             "update": [
               "setup",
+              {
+                "Fn::If": [
+                  "UseGroupKeyFile",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               {
                 "Fn::If": [
                   "InstallUpdates",
