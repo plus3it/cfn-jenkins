@@ -46,8 +46,8 @@ These templates (currently) do _not_ include Route53 functionality. It is assume
 
 See the `docs` subdirectory. It currently contains the following documents:
 
-* [ProjectLayout.md](docs/ProjectLayout.md)
-* Automated Deployment with AWS Native Tooling
+* [ProjectLayout.md](docs/ProjectLayout.md): Describes the overall layout for this git project.
+* Automated Deployment with AWS Native Tooling: Collection of documents describing using (primarily) the AWS CLI to directly-deploy CloudFormation stacks from this project's templates.
     * Master Server Elements
         * [SecurityGroup-Deployment-AWSnative.md](docs/SecurityGroup-Deployment-AWSnative.md)
         * [S3-Deployment-AWSnative.md](docs/S3-Deployment-AWSnative.md)
@@ -58,7 +58,7 @@ See the `docs` subdirectory. It currently contains the following documents:
     * Agent Server Elements
         * [Agent-Linux-Deployment-AWSnative.md](docs/Agent-Linux-Deployment-AWSnative.md)
         * [Agent-Windows-Deployment-AWSnative.md](docs/Agent-Windows-Deployment-AWSnative.md)
-* Automated Deployment with Jenkins Overlays
+* Automated Deployment with Jenkins Overlays: Collection of documents describing using the included Jenkins pipeline-definitions to encapsulate the running of this project's templates.
     * Master Server Elements
         * [IAM-Deployment-Jenkins.md](docs/IAM-Deployment-Jenkins.md)
         * [ELBv1-Deployment-Jenkins.md](docs/ELBv1-Deployment-Jenkins.md)

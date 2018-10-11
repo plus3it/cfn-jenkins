@@ -65,5 +65,6 @@ bash -xe ${SCRIPTHOME}/<FILE_NAME>
 
 ~~~~
 
-Note 1: It is recommended that content added by the template-user to the chain-script include error/exit-logic. This will better ensure that agents are actually configured the way the template-user thinks they're configured.
-Note 2: The chain script in this repository is for *example purposes only*. The template-users' real chain-scripts should be kept in a protected location that allows `curl`-based fetching with passed user-credentials or API tokens. Particular care in protecting the "real" chain-script if that chain-script contains sensitive data.
+Note 1: It is recommended that content added by the template-user to the chain-script include error/exit-logic. This will better ensure that agents are actually configured the way the template-user thinks they're configured (and provide sign-posts/break-points for troubleshooting).
+
+Note 2: The chain script in this repository is for *example purposes only*. The template-users' real chain-scripts should be kept in a protected location that allows `curl`-based fetching with passed user-credentials or API tokens. Particular care should be teken in protecting the "real" chain-script if that chain-script contains sensitive data. It is further recommended that such chain-scripts be managed is some sort of revision-control system (e.g. `git`), _separate_ from this project.
