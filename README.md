@@ -41,3 +41,27 @@ These templates (currently) do _not_ include Route53 functionality. It is assume
 
 * While there are templates provided for standalone Master and Agents, they are provided mostly for "completeness". It's expected most users of these templates will desire the availability-enhancements accorded by the use of the auto-scaling templates.
 * The ELBv2 template is similarly provided for "completeness".
+
+## Further Documentation:
+
+See the `docs` subdirectory. It currently contains the following documents:
+
+* [AutoRecovery.md](docs/AutoRecovery.md)
+* [ProjectLayout.md](docs/ProjectLayout.md)
+* [ChainLoad.md](docs/ChainLoad.md)
+* [Agent-Linux-Deployment-Jenkins.md](docs/Agent-Linux-Deployment-Jenkins.md)
+* [Agent-Windows-Deployment-Jenkins.md](docs/Agent-Windows-Deployment-Jenkins.md)
+* [Agent-Windows-Deployment-AWSnative.md](docs/Agent-Windows-Deployment-AWSnative.md)
+* [IAM-Deployment-Jenkins.md](docs/IAM-Deployment-Jenkins.md)
+* [ELBv1-Deployment-Jenkins.md](docs/ELBv1-Deployment-Jenkins.md)
+* [Master-Deployment-Jenkins.md](docs/Master-Deployment-Jenkins.md)
+* [S3-Deployment-Jenkins.md](docs/S3-Deployment-Jenkins.md)
+* [OneButtonMasterDeployment-Jenkins.md](docs/OneButtonMasterDeployment-Jenkins.md)
+* [SecurityGroup-Deployment-Jenkins.md](docs/SecurityGroup-Deployment-Jenkins.md)
+* [SecurityGroup-Deployment-AWSnative.md](docs/SecurityGroup-Deployment-AWSnative.md)
+* [S3-Deployment-AWSnative.md](docs/S3-Deployment-AWSnative.md)
+* [IAM-Deployment-AWSnative.md](docs/IAM-Deployment-AWSnative.md)
+* [ELBv1-Deployment-AWSnative.md](docs/ELBv1-Deployment-AWSnative.md)
+* [Master-Deployment-AWSnative.md](docs/Master-Deployment-AWSnative.md)
+* [Agent-Linux-Deployment-AWSnative.md](docs/Agent-Linux-Deployment-AWSnative.md)
+* [OneButtonMasterDeployment-AWSnative.md](docs/OneButtonMasterDeployment-AWSnative.md)
