@@ -1,10 +1,6 @@
-The dotc-jenkins project's Agent templates deploy fairly generic agents. To facilitate extention of agent-nodes' functionality, a "chain-load" callout is provided in the relevant CloudFormation templates.
+The dotc-jenkins project's Agent templates deploy fairly generic agents. To facilitate extention of agent-nodes' functionality, a "chain-load" callout is provided in the relevant CloudFormation templates. These callouts allow the template user to provide a network-fetchable script-location. This fetched script should be designed to manage the further invocation of other scripts (see below example).
 
-These callouts allow the template user to:
-
-* Provide script to manage the invocation of other scripts (see below example)
-* Specify an SSH-provisioning key. This key would be used by the chainer-script were it necessary for the chainer-script to operate against a git repository for further content.
-~~~
+~~~~
 #!/bin/bash
 #
 # Script to download and install Agent-extensions from other sources
@@ -67,8 +63,8 @@ curl -skL <SCRIPT_URL> | bash -xe -
 aws s3 copy s3://<BUCKET_NAME>/<FILE_NAME> ${SCRIPTHOME}/<FILE_NAME>
 bash -xe ${SCRIPTHOME}/<FILE_NAME>
 
-~~~
+~~~~
 
-The script and key should allow the template user to point the template to components that may not otherwise be appropriate to store in public repositories.
+Note 1: It is recommended that content added by the template-user to the chain-script include error/exit-logic. This will better ensure that agents are actually configured the way the template-user thinks they're configured (and provide sign-posts/break-points for troubleshooting).
 
-Note: it is recommended that content added by the template-user to the chain-script include error/exit-logic. This will better ensure that agents are actually configured the way the template-user thinks they're configured.
+Note 2: The chain script in this repository is for *example purposes only*. The template-users' real chain-scripts should be kept in a protected location that allows `curl`-based fetching with passed user-credentials or API tokens. Particular care should be teken in protecting the "real" chain-script if that chain-script contains sensitive data. It is further recommended that such chain-scripts be managed is some sort of revision-control system (e.g. `git`), _separate_ from this project.
