@@ -27,31 +27,32 @@ function InstallJava($bucketname,$objectname) {
 }
 
 function createJenkinsXML ($JNLPUrl, $secret, $workDir) {
-    $jenkxmlfile = "c:\Jenkins\jenkagent.xml"
+    $jenkxmlfile = "$workDir\jenkagent.xml"
     "<service>" | Out-File -Encoding Ascii -append $jenkxmlfile
     "    <id>JenkinsAgent</id>" | Out-File -Encoding Ascii -append $jenkxmlfile
     "    <name>JenkinsAgent</name>" | Out-File -Encoding Ascii -append $jenkxmlfile
     "    <description>JenkinsAgent</description>" | Out-File -Encoding Ascii -append $jenkxmlfile
-    "    <env name=`"JENKINS_HOME`" value=`"c:\Jenkins`"/>" | Out-File -Encoding Ascii -append $jenkxmlfile
+    "    <env name=`"JENKINS_HOME`" value=`"$workDir`"/>" | Out-File -Encoding Ascii -append $jenkxmlfile
     "    <executable>java</executable>" | Out-File -Encoding ascii -Append $jenkxmlfile
-    "    <arguments>-Xrs -Xmx256m -jar `"c:\Jenkins\agent.jar`" -jnlpUrl $JNLPUrl -secret $secret -workDir `"$workDir`"</arguments>" | Out-File -Encoding ascii -Append $jenkxmlfile
+    "    <arguments>-Xrs -Xmx256m -jar `"$workDir\agent.jar`" -jnlpUrl $JNLPUrl -secret $secret -workDir `"$workDir`"</arguments>" | Out-File -Encoding ascii -Append $jenkxmlfile
     "    <logmode>rotate</logmode>" | Out-File -Encoding ascii -Append $jenkxmlfile
     "</service>" | Out-File -Encoding ascii -Append $jenkxmlfile
 }
 
-function setupServiceWrapper($bucketname,$objectname) {
-    Copy-S3Object -BucketName $bucketname -Key $objectname -LocalFile c:\Jenkins\jenkagent.exe
-    c:\Jenkins\jenkagent.exe install
+function setupServiceWrapper($bucketname,$objectname,$workDir) {
+    Copy-S3Object -BucketName $bucketname -Key $objectname -LocalFile "$workDir"\jenkagent.exe
+    $cmd = "$workDir\jenkagent.exe install"
+    &cmd
 }
 
 downloadJNLP $JenkinsMaster $WorkDir 
 
 createJenkinsXML $JNLPUrl $SecretKey $WorkDir
 
-$extra,$mystring = $JavaBucketPath -split("https://s3.amazonaws.com/", 2)
+$extra,$mystring = $JavaBucketPath -split("https://s3.[0-9A-za-z.-]+/", 2)
 $bucketname,$objectname = $mystring -split ("/", 2)
 InstallJava $bucketname $objectname
 
-$extra,$mystring = $WinSwBucketPath -split("https://s3.amazonaws.com/", 2)
+$extra,$mystring = $WinSwBucketPath -split("https://s3.[0-9A-za-z.-]+/", 2)
 $bucketname,$objectname = $mystring -split ("/", 2)
 setupService $bucketname $objectname
