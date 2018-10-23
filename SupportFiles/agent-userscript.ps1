@@ -55,4 +55,4 @@ InstallJava $bucketname $objectname
 
 $extra,$mystring = $WinSwBucketPath -split("https://s3.[0-9A-za-z.-]+/", 2)
 $bucketname,$objectname = $mystring -split ("/", 2)
-setupService $bucketname $objectname
+setupServiceWrapper $bucketname $objectname
