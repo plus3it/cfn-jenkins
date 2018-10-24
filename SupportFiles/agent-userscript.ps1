@@ -10,6 +10,8 @@ Param(
   [String]$JavaBucketPath
   ,
   [String]$WinSwBucketPath
+  ,
+  [String]$VSBTBucketPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,9 +42,15 @@ function createJenkinsXML ($JNLPUrl, $secret, $workDir) {
 }
 
 function setupServiceWrapper($bucketname,$objectname,$workDir) {
-    Copy-S3Object -BucketName $bucketname -Key $objectname -LocalFile "$workDir"\jenkagent.exe
+    Copy-S3Object -BucketName $bucketname -Key $objectname -LocalFile "$workDir\jenkagent.exe"
     $cmd = "$workDir\jenkagent.exe install"
-    &cmd
+    Invoke-Expression $cmd
+}
+
+function InstallVSBT($bucketname,$objectname) {
+    Copy-S3Object -BucketName $bucketname -Key $objectname -LocalFile c:\cfn\scripts\vsbt_install.exe;
+    c:\cfn\scripts\vsbt_install.exe --quiet | Out-Null
+    Install-WindowsFeature -Name NET-Framework-Core;    
 }
 
 downloadJNLP $JenkinsMaster $WorkDir 
@@ -53,6 +61,10 @@ $extra,$mystring = $JavaBucketPath -split("https://s3.[0-9A-za-z.-]+/", 2)
 $bucketname,$objectname = $mystring -split ("/", 2)
 InstallJava $bucketname $objectname
 
+$extra,$mystring = $VSBTBucketPath -split("https://s3.[0-9A-Za-z.-]+/", 2)
+$bucketname,$objectname = $mystring -split ("/", 2)
+InstallVSBT $bucketname $objectname
+
 $extra,$mystring = $WinSwBucketPath -split("https://s3.[0-9A-za-z.-]+/", 2)
 $bucketname,$objectname = $mystring -split ("/", 2)
-setupServiceWrapper $bucketname $objectname
+setupServiceWrapper $bucketname $objectname $WorkDir
