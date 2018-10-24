@@ -175,7 +175,7 @@
             ]
         }
     },
-    "Description": "This template coordinates the running of the Jenkins SecurityGroup, S3, IAM, EC2 and ELB templates.",
+    "Description": "This template installs the Jenkins agent for Windows onto a STIG-hardened Windows Instance",
     "Mappings": {
         "ShellCommandMap": {
             "cmd": {
@@ -294,6 +294,7 @@
     "Outputs": {
         "WatchmakerInstanceId": {
             "Description": "Instance ID",
+            "Export": { "Name" : { "Fn::Sub": "${AWS::StackName}-InstanceId" }},
             "Value": {
                 "Ref": "Ec2Res"
             }
@@ -301,6 +302,7 @@
         "WatchmakerInstanceLogGroupName": {
             "Condition": "InstallCloudWatchAgent",
             "Description": "Log Group Name",
+            "Export": { "Name" : { "Fn::Sub": "${AWS::StackName}-LogGroupName" }},
             "Value": {
                 "Ref": "WatchmakerInstanceLogGroup"
             }
@@ -337,7 +339,7 @@
         },
         "AppVolumeSize": {
             "ConstraintDescription": "Must be between 1GB and 16384GB.",
-            "Default": "1",
+            "Default": "20",
             "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
             "MaxValue": "16384",
             "MinValue": "1",
@@ -385,7 +387,6 @@
         },
         "InstanceType": {
             "AllowedValues": [
-                "t2.micro",
                 "t2.small",
                 "t2.medium",
                 "t2.large",
@@ -397,14 +398,16 @@
                 "c5.large",
                 "c5.xlarge",
                 "m5.large",
-                "m5.xlarge"
+                "m5.xlarge",
+                "m5.2xlarge",
+                "m5.4xlarge"
             ],
-            "Default": "t2.micro",
+            "Default": "t2.small",
             "Description": "Amazon EC2 instance type",
             "Type": "String"
         },
         "KeyPairName": {
-            "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+            "Description": "(Optional) Public/private key pairs allow you to securely connect to your instance after it launches",
             "Type": "AWS::EC2::KeyPair::KeyName"
         },
         "NoPublicIp": {
@@ -517,9 +520,7 @@
                     "configSets": {
                         "appscript": [
                             "reboot",
-                            "make-app"
-                        ],
-                        "chainscript": [
+                            "make-app",
                             "chain-script",
                             "reboot"
                         ],
@@ -554,15 +555,6 @@
                                         "Ref": "AWS::NoValue"
                                     }
                                 ]
-                            },
-                            {
-                              "Fn::If": [
-                                "UseChainScript",
-                                {
-                                    "ConfigSet": "chainscript"
-                                },
-                                { "Ref": "AWS::NoValue" }
-                              ]
                             },
                             "finalize"
                         ],
