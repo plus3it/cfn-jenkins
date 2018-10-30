@@ -382,7 +382,7 @@
         },
         "InstanceRole": {
             "Default": "",
-            "Description": "(Optional) IAM instance role to apply to the instance(s)",
+            "Description": "(Optional) IAM instance role to apply to the instance(s).  WARNING: Granting permissions to Jenkins agents can be VERY bad.  Be careful what you allow here",
             "Type": "String"
         },
         "InstanceType": {
