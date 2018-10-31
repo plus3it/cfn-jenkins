@@ -536,7 +536,15 @@
                         "appscript": [
                             "reboot",
                             "make-app",
-                            "chain-script",
+                            {
+                                "Fn::If": [
+                                    "UseChainScript",
+                                    "chain-script",
+                                    {
+                                        "Ref": "AWS::NoValue"
+                                    }
+                                ]
+                            },
                             "reboot"
                         ],
                         "launch": [
