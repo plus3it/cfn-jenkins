@@ -198,20 +198,14 @@
                         "AppVolumeMountPath",
                         "AppVolumeSize",
                         "AppVolumeType",
-                        "DnsSuffix",
-                        "EpelRepo",
                         "InstanceType",
                         "InstanceRole",
                         "KeyPairName",
                         "NoPublicIp",
                         "NoReboot",
                         "NoUpdates",
-                        "ProvisionUser",
-                        "PyStache",
-                        "PipRpm",
                         "PipIndexFips",
                         "SecurityGroupIds",
-                        "ServerHostname",
                         "SubnetId"
                     ]
                 },
@@ -258,19 +252,6 @@
                         "PrivateIp",
                         "SubnetId"
                     ]
-                },
-                {
-                  "Label": {
-                    "default": "Proxy (ELB)"
-                  },
-                  "Parameters": [
-                    "ProxyPrettyName",
-                    "JenkinsListenPort",
-                    "JenkinsServicePort",
-                    "JenkinsAgentPort",
-                    "JenkinsListenerCert",
-                    "JenkinsPassesSsh"
-                  ]
                 },
                 {
                     "Label": {
@@ -391,6 +372,7 @@
                 "t2.medium",
                 "t2.large",
                 "t2.xlarge",
+                "t2.2xlarge",
                 "t3.small",
                 "t3.medium",
                 "t3.large",
@@ -400,18 +382,14 @@
                 "c4.xlarge",
                 "c4.2xlarge",
                 "c4.4xlarge",
-                "c4.8xlarge",
                 "m4.large",
                 "m4.xlarge",
                 "m4.2xlarge",
                 "m4.4xlarge",
-                "m4.10xlarge",
                 "c5.large",
                 "c5.xlarge",
                 "c5.2xlarge",
                 "c5.4xlarge",
-                "c5.9xlarge",
-                "c5.18xlarge",
                 "m5.large",
                 "m5.xlarge",
                 "m5.2xlarge",
