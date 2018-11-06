@@ -423,6 +423,14 @@
       "Description": "Name of preferred pystache RPM.",
       "Type": "String"
     },
+    "RootVolumeSize": {
+      "ConstraintDescription": "Must be between 20GB and 16384GB.",
+      "Default": "20",
+      "Description": "Size in GB of the EBS volume to create. If smaller than AMI defaul, create operation will fail; If larger, root device-volume's partition size will be increased",
+      "MaxValue": "16384",
+      "MinValue": "20",
+      "Type": "Number"
+    },
     "SecurityGroupIds": {
       "Description": "List of security groups to apply to the instance(s)",
       "Type": "List<AWS::EC2::SecurityGroup::Id>"
@@ -615,6 +623,7 @@
                   { "Ref": "AWS::NoValue" }
                 ]
               },
+              "suicide-pact",
               "finalize",
               {
                 "Fn::If": [
@@ -653,6 +662,7 @@
                   { "Ref": "AWS::NoValue" }
                 ]
               },
+              "suicide-pact",
               "finalize",
               {
                 "Fn::If": [
@@ -944,6 +954,57 @@
                 },
                 "group": "root",
                 "mode": "000400",
+                "owner": "root"
+              }
+            }
+          },
+          "suicide-pact": {
+            "files": {
+              "/usr/local/bin/seppuku.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n",
+                      "#\n",
+                      "##################################################\n",
+                      "PROGNAME=\"$(basename ${0})\"\n",
+                      "SHELL=/bin/bash\n",
+                      "PATH=/sbin:/bin:/usr/sbin:/usr/bin\n",
+                      "JENKINSDIR=$(awk -F= '/JENKINS_WORKDIR/{print $2}' /etc/cfn/JenkinsAgent.envs)\n",
+                      "RAWBLOCKS=\"$(( $( stat -f --format='%b*%S' ${JENKINSDIR} ) ))\"\n",
+                      "USEBLOCKS=\"$(( $( stat -f --format='%a*%S' ${JENKINSDIR} ) ))\"\n",
+                      "PRCNTFREE=$( printf '%.0f' $(awk \"BEGIN { print ( ${USEBLOCKS} / ${RAWBLOCKS} ) * 100 }\") )\n",
+                      "\n",
+                      "if [[ ${PRCNTFREE} -gt 5 ]]\n",
+                      "then\n",
+                      "   echo \"Found enough free space\" > /dev/null\n",
+                      "else\n",
+                      "   # Put a bullet in systemd's brain\n",
+                      "   echo o > /proc/sysrq-trigger\n",
+                      "fi\n",
+                      ""
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000755",
+                "owner": "root"
+              },
+              "/etc/cron.d/workspaceChk": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "MAILTO=\"\"\n",
+                      "\n",
+                      "# Check adequate free-space\n",
+                      "*/5 * * * * root /usr/local/bin/seppuku.sh\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000644",
                 "owner": "root"
               }
             }
@@ -1271,7 +1332,8 @@
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
-              "DeleteOnTermination": "true",
+              "DeleteOnTermination": true,
+              "VolumeSize": { "Ref": "RootVolumeSize" },
               "VolumeType": "gp2"
             }
           },
@@ -1357,6 +1419,12 @@
                 ".",
                 { "Ref": "Domainname" },
                 "\n",
+                "\n",
+                "growpart:\n",
+                "  mode: auto\n",
+                "  devices: [ '/dev/xvda', '/dev/xvda2', '/dev/nvme0n1p2' ]\n",
+                "  ignore_growroot_disabled: false\n",
+                "\n",
                 {
                   "Fn::If": [
                     "CreateAppVolume",
@@ -1427,6 +1495,31 @@
                 "# CFN LaunchConfig Update Toggle: ",
                 { "Ref": "ToggleNewInstances" },
                 "\n\n",
+                "# Extend any available LVM PVs\n",
+                "if [[ -x $( which pvs ) ]]\n",
+                "then\n",
+                "   LVMPVS=($(pvs --noheadings -o pv_name))\n",
+                "   for PV in \"${LVMPVS[@]}\"\n",
+                "   do\n",
+                "      pvresize ${PV}\n",
+                "   done\n",
+                "\n",
+                "   vgdisplay -s\n",
+                "   VGSFREE=$( vgs --noheadings --units=g --nosuffix -o vg_free | sed -e 's/^ *//' -e  's/\\..*$//' )\n",
+                "   ROOTVOL=\"$( awk '/\\s\\/\\s/{ print $1}' /etc/fstab )\"\n",
+                "   if [[ ${VGSFREE} -gt 0 ]] && [[ ${VGSFREE} -le 2 ]]\n",
+                "   then\n",
+                "      echo \"Attempting use free space in VG to expand ${ROOTVOL}\"\n",
+                "      lvextend -r -l +100%FREE \"${ROOTVOL}\"\n",
+                "   elif [[ ${VGSFREE} -gt 2 ]]\n",
+                "   then\n",
+                "      echo \"Attempting to expand ${ROOTVOL} by 2GiB\"\n",
+                "      lvextend -r -L +2G \"${ROOTVOL}\"\n",
+                "   else\n",
+                "      echo \"Cannot expand ${ROOTVOL}\"\n",
+                "   fi\n",
+                "fi\n",
+                "\n",
                 "# Export cert bundle ENVs\n",
                 "export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n",
                 "export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n\n",
