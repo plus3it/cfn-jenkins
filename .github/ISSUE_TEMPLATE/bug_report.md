@@ -10,6 +10,12 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
+**Severity**
+- [ ] Completely Broken (No work-around evident)
+- [ ] Severely Broken (Work-around possible but difficult)
+- [ ] Moderately Broken (Trivial work-around)
+- [ ] Nuisance (Functions but untrapped errors can slip through)
+
 **To Reproduce**
 Steps to reproduce the behavior:
 1. Go to '...'
