@@ -22,10 +22,7 @@
           },
           "Parameters": [
             "AmiId",
-            "AmiDistro",
             "InstanceType",
-            "ServerHostname",
-            "DnsSuffix",
             "ProvisionUser",
             "KeyPairName",
             "AdminPubkeyURL",
@@ -37,10 +34,7 @@
             "AppVolumeType",
             "NoUpdates",
             "NoReboot",
-            "EpelRepo",
-            "PyStache",
-            "PipRpm",
-            "PipIndexFips"
+            "EpelRepo"
           ]
         },
         {
@@ -53,8 +47,7 @@
             "JenkinsOsPrepScriptUrl",
             "JenkinsAppinstallScriptUrl",
             "BackupBucket",
-            "BackupFolder",
-            "BackupCronURL"
+            "BackupFolder"
           ]
         },
         {
@@ -209,32 +202,8 @@
       "Description": "URL to the child-template for creating the Jenkins S3 backup-bucket.",
       "Type": "String"
     },
-    "CfnBootstrapUtilsUrl": {
-      "AllowedPattern": "^http[s]?://.*\\.tar\\.gz$",
-      "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
-      "Description": "URL to aws-cfn-bootstrap-latest.tar.gz",
-      "Type": "String"
-    },
-    "CfnEndpointUrl": {
-      "AllowedPattern": "^$|^http[s]?://.*$",
-      "Default": "https://cloudformation.us-east-1.amazonaws.com",
-      "Description": "(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
-      "Type": "String"
-    },
-    "CfnGetPipUrl": {
-      "AllowedPattern": "^http[s]?://.*\\.py$",
-      "Default": "https://bootstrap.pypa.io/2.6/get-pip.py",
-      "Description": "URL to get-pip.py",
-      "Type": "String"
-    },
     "CloudwatchBucketName": {
       "Description": "Name of the S3 Bucket hosting the CloudWatch agent archive files",
-      "Type": "String"
-    },
-    "CloudWatchAgentUrl": {
-      "AllowedPattern": "^$|^s3://.*$",
-      "Default": "",
-      "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
       "Type": "String"
     },
     "Ec2Template": {
@@ -407,14 +376,6 @@
       "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
       "Type": "String"
     },
-    "RootVolumeSize": {
-      "ConstraintDescription": "Must be between 20GB and 16384GB.",
-      "Default": "20",
-      "Description": "Size in GB of the EBS volume to create. If smaller than AMI defaul, create operation will fail; If larger, root device-volume's partition size will be increased",
-      "MaxValue": "16384",
-      "MinValue": "20",
-      "Type": "Number"
-    },
     "SecurityGroupTemplate": {
       "AllowedPattern": "^$|^http://.*$|^https://.*$",
       "Description": "URL to the child-template for creating the Jenkins network security-groups.",
@@ -428,15 +389,6 @@
       "AllowedPattern": "^vpc-[0-9a-f]*$",
       "Description": "ID of the VPC to deploy Jenkins components into.",
       "Type": "AWS::EC2::VPC::Id"
-    },
-    "ToggleCfnInitUpdate": {
-      "AllowedValues": [
-        "A",
-        "B"
-      ],
-      "Default": "A",
-      "Description": "A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence",
-      "Type": "String"
     },
     "WatchmakerAdminGroups": {
       "Default": "",
@@ -575,7 +527,7 @@
           "RolePrefix": { "Ref": "RolePrefix" }
         },
         "TemplateURL": { "Ref": "IamRoleTemplate" },
-        "TimeoutInMinutes": "10"
+        "TimeoutInMinutes": 10
       },
       "Type": "AWS::CloudFormation::Stack"
     },
@@ -585,7 +537,7 @@
           "JenkinsBackupBucket": { "Ref": "BackupBucket" }
         },
         "TemplateURL": { "Ref": "BucketTemplate" },
-        "TimeoutInMinutes": "10"
+        "TimeoutInMinutes": 10
       },
       "Type": "AWS::CloudFormation::Stack"
     },
@@ -596,7 +548,7 @@
           "TargetVPC": { "Ref": "TargetVPC" }
         },
         "TemplateURL": { "Ref": "SecurityGroupTemplate" },
-        "TimeoutInMinutes": "10"
+        "TimeoutInMinutes": 10
       },
       "Type": "AWS::CloudFormation::Stack"
     }

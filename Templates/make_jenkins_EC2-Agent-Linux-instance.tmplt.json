@@ -11,19 +11,9 @@
         { "Fn::Equals": [ { "Ref": "NoPublicIp" }, "true" ] }
       ]
     },
-    "AssignStaticPrivateIp": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "PrivateIp" }, "" ] }
-      ]
-    },
     "CreateAppVolume": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "" ] }
-      ]
-    },
-    "InstallUpdates": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
       ]
     },
     "NotGenFive": {
@@ -52,11 +42,6 @@
             }
           ]
         }
-      ]
-    },
-    "Reboot": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
       ]
     },
     "UseCfnUrl": {
@@ -111,10 +96,7 @@
             "AdminPubkeyURL",
             "SecurityGroupIds",
             "SubnetId",
-            "PrivateIp",
-            "NoPublicIp",
-            "NoReboot",
-            "NoUpdates"
+            "NoPublicIp"
           ]
         },
         {
@@ -176,7 +158,7 @@
     "AmiId": {
       "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
       "Description": "ID of the AMI to launch",
-      "Type": "String"
+      "Type": "AWS::EC2::Image::Id"
     },
     "AppVolumeDevice": {
       "AllowedValues": [
@@ -312,32 +294,9 @@
       "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
       "Type": "String"
     },
-    "NoReboot": {
-      "AllowedValues": [
-        "false",
-        "true"
-      ],
-      "Default": "false",
-      "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
-      "Type": "String"
-    },
-    "NoUpdates": {
-      "AllowedValues": [
-        "false",
-        "true"
-      ],
-      "Default": "false",
-      "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
-      "Type": "String"
-    },
     "PipRpm": {
       "Default": "python2-pip",
       "Description": "Name of preferred pip RPM.",
-      "Type": "String"
-    },
-    "PrivateIp": {
-      "Default": "",
-      "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
       "Type": "String"
     },
     "ProvisionUser": {
@@ -789,8 +748,8 @@
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
-              "DeleteOnTermination": "true",
-              "VolumeSize": "20",
+              "DeleteOnTermination": true,
+              "VolumeSize": 20,
               "VolumeType": "gp2"
             }
           },
@@ -818,7 +777,7 @@
                   ]
                 },
                 "Ebs": {
-                  "DeleteOnTermination": "true",
+                  "DeleteOnTermination": true,
                   "VolumeSize": { "Ref": "AppVolumeSize" },
                   "VolumeType": { "Ref": "AppVolumeType" }
                 }
@@ -849,8 +808,8 @@
             "AssociatePublicIpAddress": {
               "Fn::If": [
                 "AssignPublicIp",
-                "true",
-                "false"
+                true,
+                false
               ]
             },
             "GroupSet": { "Ref": "SecurityGroupIds" },

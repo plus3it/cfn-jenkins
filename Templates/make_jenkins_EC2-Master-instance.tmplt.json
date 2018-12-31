@@ -1390,7 +1390,7 @@
                   ]
                 },
                 "Ebs": {
-                  "DeleteOnTermination": "true",
+                  "DeleteOnTermination": true,
                   "VolumeSize": { "Ref": "AppVolumeSize" },
                   "VolumeType": { "Ref": "AppVolumeType" }
                 }

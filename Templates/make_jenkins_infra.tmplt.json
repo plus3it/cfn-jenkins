@@ -30,7 +30,6 @@
             "CloudwatchBucketName",
             "TargetVPC",
             "JenkinsAgentPort",
-            "ServiceTld",
             "RolePrefix"
           ]
         }
@@ -127,11 +126,6 @@
       "Description": "URL to the child-template for creating the Jenkins network security-groups.",
       "Type": "String"
     },
-    "ServiceTld": {
-      "Default": "amazonaws.com",
-      "Description": "TLD of the IAMable service-name.",
-      "Type": "String"
-    },
     "TargetVPC": {
       "AllowedPattern": "^vpc-[0-9a-f]*$",
       "Description": "ID of the VPC to deploy Jenkins components into.",
@@ -149,7 +143,7 @@
           "RolePrefix": { "Ref": "RolePrefix" }
         },
         "TemplateURL": { "Ref": "IamRoleTemplate" },
-        "TimeoutInMinutes": "10"
+        "TimeoutInMinutes": 10
       },
       "Type": "AWS::CloudFormation::Stack"
     },
@@ -165,7 +159,7 @@
           }
         },
         "TemplateURL": { "Ref": "BucketTemplate" },
-        "TimeoutInMinutes": "10"
+        "TimeoutInMinutes": 10
       },
       "Type": "AWS::CloudFormation::Stack"
     },
@@ -176,7 +170,7 @@
           "TargetVPC": { "Ref": "TargetVPC" }
         },
         "TemplateURL": { "Ref": "SecurityGroupTemplate" },
-        "TimeoutInMinutes": "10"
+        "TimeoutInMinutes": 10
       },
       "Type": "AWS::CloudFormation::Stack"
     }
