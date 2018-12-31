@@ -16,11 +16,6 @@
         { "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "" ] }
       ]
     },
-    "InstallUpdates": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
-      ]
-    },
     "Reboot": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
@@ -70,7 +65,6 @@
             "ProvisionUser",
             "KeyPairName",
             "NoReboot",
-            "NoUpdates",
             "SecurityGroupIds"
           ]
         },
@@ -102,7 +96,6 @@
           },
           "Parameters": [
             "BackupBucket",
-            "BackupCronURL",
             "BackupFolder"
           ]
         },
@@ -126,12 +119,7 @@
             "CfnEndpointUrl"
           ]
         }
-      ],
-      "ParameterLabels": {
-        "ForceNewInstancesToggle": {
-          "default": "Force New Instances"
-        }
-      }
+      ]
     }
   },
   "Outputs": {
@@ -161,7 +149,7 @@
     "AmiId": {
       "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
       "Description": "ID of the AMI to launch",
-      "Type": "String"
+      "Type": "AWS::EC2::Image::Id"
     },
     "AppVolumeDevice": {
       "AllowedValues": [
@@ -205,11 +193,6 @@
     "BackupBucket": {
       "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
       "Description": "S3 Bucket to host backups of Jenkins config-data",
-      "Type": "String"
-    },
-    "BackupCronURL": {
-      "AllowedPattern": "^$|^http://.*$|^https://.*$",
-      "Description": "URL to the Jenkins backup cron-file",
       "Type": "String"
     },
     "BackupFolder": {
@@ -305,15 +288,6 @@
       ],
       "Default": "false",
       "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
-      "Type": "String"
-    },
-    "NoUpdates": {
-      "AllowedValues": [
-        "false",
-        "true"
-      ],
-      "Default": "false",
-      "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, SystemPrep _always_ installs updates)",
       "Type": "String"
     },
     "PipIndexFips": {
@@ -809,7 +783,7 @@
               ]
             },
             "Ebs": {
-              "DeleteOnTermination": "true",
+              "DeleteOnTermination": true,
               "VolumeType": "gp2"
             }
           },
@@ -819,7 +793,7 @@
               {
                 "DeviceName": { "Ref": "AppVolumeDevice" },
                 "Ebs": {
-                  "DeleteOnTermination": "true",
+                  "DeleteOnTermination": true,
                   "VolumeSize": { "Ref": "AppVolumeSize" },
                   "VolumeType": { "Ref": "AppVolumeType" }
                 }
@@ -843,8 +817,8 @@
             "AssociatePublicIpAddress": {
               "Fn::If": [
                 "AssignPublicIp",
-                "true",
-                "false"
+                true,
+                false
               ]
             },
             "DeviceIndex": "0",

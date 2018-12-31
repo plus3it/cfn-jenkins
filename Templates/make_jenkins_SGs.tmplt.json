@@ -32,9 +32,9 @@
           {
             "CidrIp": "0.0.0.0/0",
             "Description": "SSL-protected web-interface connections",
-            "FromPort": "443",
+            "FromPort": 443,
             "IpProtocol": "tcp",
-            "ToPort": "443"
+            "ToPort": 443
           },
           {
             "CidrIp": "0.0.0.0/0",
@@ -57,10 +57,9 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "UpdateAppSg": {
-      "DependsOn": "AppSg",
       "Properties": {
         "Description": "Comms between service-elements",
-        "FromPort": "0",
+        "FromPort": 0,
         "GroupId": {
           "Ref": "AppSg"
         },
@@ -68,7 +67,7 @@
         "SourceSecurityGroupId": {
           "Ref": "AppSg"
         },
-        "ToPort": "65535"
+        "ToPort": 65535
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
     }
