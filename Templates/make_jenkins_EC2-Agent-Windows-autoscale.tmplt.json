@@ -283,6 +283,23 @@
         "Version": "1.5.2"
     },
     "Outputs": {
+        "ScaleDownScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Description": "Scale Down Scheduled Action ID",
+          "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ScaleDownSched" } },
+          "Value": { "Ref": "ScaleDownScheduledAction" }
+        },
+        "ScaleUpScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Description": "Scale Up Scheduled Action ID",
+          "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ScaleUpSched" } },
+          "Value": { "Ref": "ScaleUpScheduledAction" }
+        },
+        "JenkinsASGLCId": {
+          "Description": "Launch Configuration ID",
+          "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-LaunchConfigId" } },
+          "Value": { "Ref": "JenkAgentLC" }
+        },
         "JenkinsASGInstanceId": {
             "Description": "Autoscaling Group ID",
             "Value": {
