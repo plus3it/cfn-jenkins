@@ -1615,6 +1615,28 @@
             },
             "Type": "AWS::AutoScaling::LaunchConfiguration"
         },
+        "ScaleDownScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Properties": {
+            "AutoScalingGroupName": { "Ref": "Ec2ASG" },
+            "DesiredCapacity": { "Ref": "MinCapacity" },
+            "MaxSize": { "Ref": "MinCapacity" },
+            "MinSize": { "Ref": "MinCapacity" },
+            "Recurrence": { "Ref": "ScaleDownSchedule" }
+          },
+          "Type": "AWS::AutoScaling::ScheduledAction"
+        },
+        "ScaleUpScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Properties": {
+            "AutoScalingGroupName": { "Ref": "Ec2ASG" },
+            "DesiredCapacity": { "Ref": "DesiredCapacity" },
+            "MaxSize": { "Ref": "MaxCapacity" },
+            "MinSize": { "Ref": "MinCapacity" },
+            "Recurrence": { "Ref": "ScaleUpSchedule" }
+          },
+          "Type": "AWS::AutoScaling::ScheduledAction"
+        },
         "JenkinsLCLogGroup": {
             "Condition": "InstallCloudWatchAgent",
             "Properties": {
