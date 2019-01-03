@@ -430,7 +430,7 @@
         },
         "KeyPairName": {
             "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-            "Type": "AWS::EC2::KeyPair::KeyName"
+            "Type": "String"
         },
         "MaxCapacity": {
             "Default": "2",
