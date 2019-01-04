@@ -563,7 +563,7 @@
               "CreationPolicy": {
                   "ResourceSignal": {
                       "Count": { "Ref": "DesiredCapacity" },
-                      "Timeout": "PT60M"
+                      "Timeout": "PT90M"
                   }
               },
               "Properties": {
@@ -592,7 +592,7 @@
                 "AutoScalingRollingUpdate": {
                   "MaxBatchSize": 2, 
                   "MinInstancesInService": 1, 
-                  "PauseTime": "PT60M",
+                  "PauseTime": "PT90M",
                   "WaitOnResourceSignals": true
                 }    
               }    
