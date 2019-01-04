@@ -47,7 +47,7 @@ pipeline {
         string(name: 'NoReboot', defaultValue: 'false', description: 'Controls whether to reboot the instance as the last step of cfn-init execution')
         string(name: 'NpmSetupUri', defaultValue: 'https://rpm.nodesource.com/setup_8.x', description: 'URI of node.js NPM setup')
         string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'URL for pypi')
-        string(name: 'RootVolumeSize', description: 'size of the root volume')
+        string(name: 'RootVolumeSize', defaultValue: '20', description: 'size of the root volume')
         string(name: 'SecurityGroupIds', description: 'The security groups to apply to the instance')
         string(name: 'SubnetIds', description: 'specific subnets to deploy into')
     }
