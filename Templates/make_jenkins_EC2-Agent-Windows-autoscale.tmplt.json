@@ -219,6 +219,7 @@
                         "KeyPairName",
                         "NoPublicIp",
                         "NoReboot",
+                        "RootVolumeSize",
                         "SecurityGroupIds",
                         "SubnetIds"
                     ]
@@ -476,6 +477,14 @@
             "Default": "https://www.python.org/ftp/python/3.6.4/python-3.6.4-amd64.exe",
             "Description": "URL to the Python Installer Executable",
             "Type": "String"
+        },
+        "RootVolumeSize": {
+          "ConstraintDescription": "Must be between 20GB and 16384GB.",
+          "Default": "20",
+          "Description": "Size in GB of the EBS volume to create. If smaller than AMI default, create operation will fail; If larger, root device-volume's partition size will be increased",
+          "MaxValue": "16384",
+          "MinValue": "20",
+          "Type": "Number"
         },
         "ScaleDownSchedule": {
           "Default": "",
@@ -1462,6 +1471,7 @@
                         "DeviceName": "/dev/sda1",
                         "Ebs": {
                             "DeleteOnTermination": true,
+                            "VolumeSize": { "Ref": "RootVolumeSize" },
                             "VolumeType": "gp2"
                         }
                     },
