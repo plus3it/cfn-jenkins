@@ -48,6 +48,7 @@ pipeline {
         string(name: 'NpmSetupUri', defaultValue: 'https://rpm.nodesource.com/setup_8.x', description: 'URI of node.js NPM setup')
         string(name: 'PrivateIp', defaultValue: '', description: '(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP')
         string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'URL for pypi')
+        string(name: 'RootVolumeSize', description: 'size of the root volume')
         string(name: 'SecurityGroupIds', description: 'The security groups to apply to the instance')
         string(name: 'SubnetIds', description: 'specific subnets to deploy into')
     }
@@ -129,6 +130,10 @@ pipeline {
                       {
                         "ParameterKey": "PrivateIp",
                         "ParameterValue": "${env.PrivateIp}"
+                      },
+                      {
+                      "ParameterKey": "RootVolumeSize",
+                      "ParameterValue": "${env.RootVolumeSize}"
                       },
                       {
                       "ParameterKey": "SecurityGroupIds",
