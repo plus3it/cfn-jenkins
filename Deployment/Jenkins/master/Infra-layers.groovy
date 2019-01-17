@@ -35,7 +35,6 @@ pipeline {
         string(name: 'JenkinsAgentPort', description: 'TCP Port number that the Jenkins agent-hosts connect through.')
         string(name: 'RolePrefix', description: 'Prefix to apply to IAM role to make things a bit prettier (optional).')
         string(name: 'SecurityGroupTemplate', description: 'URL to the child-template for creating the Jenkins network security-groups.')
-        string(name: 'ServiceTld', defaultValue: 'amazonaws.com', description: 'TLD of the IAMable service-name.')
         string(name: 'TargetVPC', description: 'ID of the VPC to deploy Jenkins components into.')
     }
 
@@ -76,10 +75,6 @@ pipeline {
                             {
                                 "ParameterKey": "SecurityGroupTemplate",
                                 "ParameterValue": "${env.SecurityGroupTemplate}"
-                            },
-                            {
-                                "ParameterKey": "ServiceTld",
-                                "ParameterValue": "${env.ServiceTld}"
                             },
                             {
                                 "ParameterKey": "TargetVPC",
