@@ -4,7 +4,7 @@ The functional content for this project is conisists of three main categories. E
 
 ### Templates
 
-This project's primary aim is to automate the deployment of the Jenkins service within AWS via [ClouFormation](https://aws.amazon.com/cloudformation/aws-cloudformation-templates/) (CFn templtes). Therefore, the template-directory would be considered the core of this project. Each template file &mdash; with the exception of the "parent" templates &mdash; corresponds to a discrete set of related AWS deployment tasks. Templates are named to try to reflect the AWS configuration elements or processes being automated:
+This project's primary aim is to automate the deployment of the Jenkins service within AWS via [ClouFormation](https://aws.amazon.com/cloudformation/aws-cloudformation-templates/) (CFn templates). Therefore, the template-directory would be considered the core of this project. Each template file &mdash; with the exception of the "parent" templates &mdash; corresponds to a discrete set of related AWS deployment tasks. Templates are named to try to reflect the AWS configuration elements or processes being automated:
 
 #### Service Templates
 
@@ -14,9 +14,9 @@ The following templates underpin the automation of deploying AWS service element
 * [`make_jenkins_EC2-Master-instance.tmplt.json`](/Templates/make_jenkins_EC2-Master-instance.tmplt.json): Deploys a STIG-hardened, EL7-based EC2 instance to host a Jenkins master-node.
 * [`make_jenkins_EC2-Agent-Linux-autoscale.tmplt.json`](/Templates/make_jenkins_EC2-Agent-Linux-autoscale.tmplt.json): Deploys an auto-scaled, STIG-hardened, EL7-based EC2 instance to host a Jenkins agent-node. AWS AutoScaling service improves availability of the agent-node service.
 * [`make_jenkins_EC2-Agent-Linux-instance.tmplt.json`](/Templates/make_jenkins_EC2-Agent-Linux-instance.tmplt.json): Deploys a STIG-hardened, EL7-based EC2 instance to host a Jenkins agent-node:
-* [`make_jenkins_ELBv1-pub-autoscale.tmplt.json`](/Templates/make_jenkins_ELBv1-pub-autoscale.tmplt.json): Deploys a user-facing, "[Classic](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html)" [Elastic Loadbalancer](https://docs.aws.amazon.com/elasticloadbalancing/index.html). 
+* [`make_jenkins_ELBv1-pub-autoscale.tmplt.json`](/Templates/make_jenkins_ELBv1-pub-autoscale.tmplt.json): Deploys a user-facing, "[Classic](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html)" [Elastic Loadbalancer](https://docs.aws.amazon.com/elasticloadbalancing/index.html).
 * [`make_jenkins_ELBv2-pub.tmplt.json`](/Templates/make_jenkins_ELBv2-pub.tmplt.json): Deploys a user-facing, "[Application](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html)" Elastic Loadbalancer. _Note_: This template is not currently well-maintained and does not come with any Jenkins pipeline-definition.
-* [`make_jenkins_IAM-role.tmplt.json`](/Templates/make_jenkins_IAM-role.tmplt.json): Creates an [IAM instance-role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html). When attached to an EC2 instance, provides access to a deployment's S3-based resources as well as providing access to cloud-layer functionality required to enable centralized management (via [SSM]()https://docs.aws.amazon.com/systems-manager/index.html), logging (via [CloudWatch](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html)). 
+* [`make_jenkins_IAM-role.tmplt.json`](/Templates/make_jenkins_IAM-role.tmplt.json): Creates an [IAM instance-role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html). When attached to an EC2 instance, provides access to a deployment's S3-based resources as well as providing access to cloud-layer functionality required to enable centralized management (via [SSM]()https://docs.aws.amazon.com/systems-manager/index.html), logging (via [CloudWatch](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html)).
 * [`make_jenkins_S3-bucket.tmplt.json`](/Templates/make_jenkins_S3-bucket.tmplt.json): Creates an [S3](https://aws.amazon.com/s3/) [bucket](https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) used (primarily) to host the Jenkins service's daily and [auto-recovery](/docs/AutoRecovery.md) backups. Buckets are created with a default security-posture of "private". Access to bucket-contents are only available to authenticated users and processes. Process-accesses are authenticated by way of the previously-mentioned attachment of IAM instance-roles to the Jenkins EC2 instances.
 * [`make_jenkins_SGs.tmplt.json`](/Templates/make_jenkins_SGs.tmplt.json): Creates the VPC [security-groups](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html) used to protect AWS-hosted Jenkins resources. It is expected that Jenkins-hosting EC2 instances will be deployed to unroutable subnets and that any resources that need user-facing access will be routed to the EC2s by way of user-facing proxies (see the previously-noted Elastic Load-balancers). This template creates the requisite network permissions for:
     * Users to access the web-proxy service-components
@@ -33,7 +33,7 @@ The following templates act as control-layers for the [service-templates](/docs/
 
 ### SupportFiles
 
-This directory contains the files invoked by the EC2 templates to handle the configuration of the deployed EC2 instaces to host Jenkins Master and Agent services.
+This directory contains the files invoked by the EC2 templates to handle the configuration of the deployed EC2 instances to host Jenkins Master and Agent services.
 
 * [`jenkins_osprep.sh`](/SupportFiles/jenkins_osprep.sh): This script takes care of the baseline configuration of the underlying EL7 host. This script makes the host ready for the installation of the Jenkins Master service.
 * [`jenkins_appinstall.sh`](/SupportFiles/jenkins_appinstall.sh): This script installs the Jenkins Master service. This script detects whether the installation should proceed as a "fresh" install or as an "auto-recovery" install:
@@ -41,7 +41,7 @@ This directory contains the files invoked by the EC2 templates to handle the con
     * In the latter case, upon completion, the Jenkins Master service will be pre-configured to the state defined in the auto-recovery files.
 * [`jenkins-agent_userscript.sh`](/SupportFiles/jenkins-agent_userscript.sh): Simple script to `curl` the `agent.jar` file from the Jenkins Master node and install it.
 * `jenkins-agent_userscript.ps1`: Content TBD: authoring in progress
-* [`chain-load.sh`](/SupportFiles/chain-load.sh): This script automates the tailoring of an Agent-node to meet the template user's specific needs. Script will mosly be used for pre-installing Jenkins agent plugins and doing further configuration of the agent-node to meet the needs of those plugins. Notes:
+* [`chain-load.sh`](/SupportFiles/chain-load.sh): This script automates the tailoring of an Agent-node to meet the template user's specific needs. Script will mostly be used for pre-installing Jenkins agent plugins and doing further configuration of the agent-node to meet the needs of those plugins. Notes:
     * The script hosted in this repository is meant to act as an example of the types of things that _can_ be done.
     * Template-users' _real_ chain-scripts should be hosted in a protected, `curl`-fetchable repository service (e.g. Artifactory, authenticated HTTP download directory, etc.) and maintained in a separate, version-controlled, _private_ projects.
     * This document's emphasis on protecting the template-users' "real" script is due to the expectation that such script may contain potentially sensitive information (API tokens or other credentials; back-end system-names/addresses; etc).
@@ -50,7 +50,7 @@ This directory contains the files invoked by the EC2 templates to handle the con
 
 This directory hierarchy is designed to contain tools to further facilitate deployments leveraging other automation frameworks.
 
-_Note: Currently, this hierarchy only contains Jenkins pipeline definitions (in the `Jenkins` subdirectory). As this project is matured, it is expected that support for other frameworks will be added. Users of this project should feel free to contribute support for futher frameworks._
+_Note: Currently, this hierarchy only contains Jenkins pipeline definitions (in the `Jenkins` subdirectory). As this project is matured, it is expected that support for other frameworks will be added. Users of this project should feel free to contribute support for further frameworks._
 
 #### Jenkins
 
