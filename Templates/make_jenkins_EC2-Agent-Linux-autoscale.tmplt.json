@@ -184,7 +184,6 @@
           },
           "Parameters": [
             "CfnEndpointUrl",
-            "CfnGetPipUrl",
             "ToggleCfnInitUpdate",
             "ToggleNewInstances"
           ]
@@ -228,7 +227,7 @@
     "AmiId": {
       "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
       "Description": "ID of the AMI to launch",
-      "Type": "String"
+      "Type": "AWS::EC2::Image::Id"
     },
     "AppVolumeDevice": {
       "AllowedValues": [
@@ -269,12 +268,6 @@
       "AllowedPattern": "^$|^http[s]?://.*$",
       "Default": "https://cloudformation.us-east-1.amazonaws.com",
       "Description": "(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
-      "Type": "String"
-    },
-    "CfnGetPipUrl": {
-      "AllowedPattern": "^http[s]?://.*\\.py$",
-      "Default": "https://bootstrap.pypa.io/get-pip.py",
-      "Description": "URL to get-pip.py",
       "Type": "String"
     },
     "ChainScriptUrl": {
@@ -521,7 +514,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "PropagateAtLaunch": "true",
+            "PropagateAtLaunch": true,
             "Value": {
               "Fn::Join": [
                 "",
@@ -537,10 +530,10 @@
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MaxBatchSize": "2",
-          "MinInstancesInService": "1",
+          "MaxBatchSize": 2,
+          "MinInstancesInService": 1,
           "PauseTime": "PT30M",
-          "WaitOnResourceSignals": "true"
+          "WaitOnResourceSignals": true
         }
       }
     },
@@ -1324,8 +1317,8 @@
         "AssociatePublicIpAddress": {
           "Fn::If": [
             "AssignPublicIp",
-            "true",
-            "false"
+            true,
+            false
           ]
         },
         "BlockDeviceMappings": [
@@ -1361,7 +1354,7 @@
                   ]
                 },
                 "Ebs": {
-                  "DeleteOnTermination": "true",
+                  "DeleteOnTermination": true,
                   "VolumeSize": { "Ref": "AppVolumeSize" },
                   "VolumeType": { "Ref": "AppVolumeType" }
                 }

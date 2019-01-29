@@ -195,8 +195,6 @@
           },
           "Parameters": [
             "CfnEndpointUrl",
-            "CfnGetPipUrl",
-            "CfnBootstrapUtilsUrl",
             "ToggleCfnInitUpdate",
             "ToggleNewInstances"
           ]
@@ -221,7 +219,7 @@
     "AmiId": {
       "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
       "Description": "ID of the AMI to launch",
-      "Type": "String"
+      "Type": "AWS::EC2::Image::Id"
     },
     "AppVolumeDevice": {
       "AllowedValues": [
@@ -272,22 +270,10 @@
       "Description": "Folder in S3 Bucket to host backups of Jenkins config-data",
       "Type": "String"
     },
-    "CfnBootstrapUtilsUrl": {
-      "AllowedPattern": "^$|^http[s]?://.*\\.tar\\.gz$",
-      "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
-      "Description": "URL to aws-cfn-bootstrap-latest.tar.gz",
-      "Type": "String"
-    },
     "CfnEndpointUrl": {
       "AllowedPattern": "^$|^http[s]?://.*$",
       "Default": "https://cloudformation.us-east-1.amazonaws.com",
       "Description": "(Optional) URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
-      "Type": "String"
-    },
-    "CfnGetPipUrl": {
-      "AllowedPattern": "^$|^http[s]?://.*\\.py$",
-      "Default": "https://bootstrap.pypa.io/get-pip.py",
-      "Description": "URL to get-pip.py",
       "Type": "String"
     },
     "DesiredCapacity": {
@@ -520,7 +506,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "PropagateAtLaunch": "true",
+            "PropagateAtLaunch": true,
             "Value": {
               "Fn::Join": [
                 "",
@@ -536,10 +522,10 @@
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MaxBatchSize": "2",
-          "MinInstancesInService": "1",
+          "MaxBatchSize": 2,
+          "MinInstancesInService": 1,
           "PauseTime": "PT60M",
-          "WaitOnResourceSignals": "true"
+          "WaitOnResourceSignals": true
         }
       }
     },
@@ -1197,15 +1183,15 @@
         "AssociatePublicIpAddress": {
           "Fn::If": [
             "AssignPublicIp",
-            "true",
-            "false"
+            true,
+            false
           ]
         },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
-              "DeleteOnTermination": "true",
+              "DeleteOnTermination": true,
               "VolumeType": "gp2"
             }
           },
@@ -1233,7 +1219,7 @@
                   ]
                 },
                 "Ebs": {
-                  "DeleteOnTermination": "true",
+                  "DeleteOnTermination": true,
                   "VolumeSize": { "Ref": "AppVolumeSize" },
                   "VolumeType": { "Ref": "AppVolumeType" }
                 }

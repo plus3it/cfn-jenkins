@@ -25,18 +25,6 @@
                 }
             ]
         },
-        "AssignStaticPrivateIp": {
-            "Fn::Not": [
-                {
-                    "Fn::Equals": [
-                        {
-                            "Ref": "PrivateIp"
-                        },
-                        ""
-                    ]
-                }
-            ]
-        },
         "CreateAppVolume": {
             "Fn::Not": [
                 {
@@ -150,6 +138,11 @@
                 }
             ]
         },
+        "UseKeyPair": {
+          "Fn::Not": [
+            { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
+          ]
+        },
         "UseOuPath": {
             "Fn::Not": [
                 {
@@ -161,6 +154,20 @@
                     ]
                 }
             ]
+        },
+        "UseScheduledAction": {
+            "Fn::And": [
+            {
+              "Fn::Not": [
+                { "Fn::Equals": [ { "Ref": "ScaleUpSchedule" }, "" ] }
+              ]
+            },
+            {
+              "Fn::Not": [
+                { "Fn::Equals": [ { "Ref": "ScaleDownSchedule" }, "" ] }
+              ]
+            }
+          ]
         },
         "UseWamConfig": {
             "Fn::Not": [
@@ -191,6 +198,16 @@
             "ParameterGroups": [
                 {
                     "Label": {
+                        "default": "Autoscale Configuration"
+                    },
+                    "Parameters": [
+                        "DesiredCapacity",
+                        "MinCapacity",
+                        "MaxCapacity"
+                    ]
+                },
+                {
+                    "Label": {
                         "default": "EC2 Instance Configuration"
                     },
                     "Parameters": [
@@ -202,8 +219,9 @@
                         "KeyPairName",
                         "NoPublicIp",
                         "NoReboot",
+                        "RootVolumeSize",
                         "SecurityGroupIds",
-                        "SubnetId"
+                        "SubnetIds"
                     ]
                 },
                 {
@@ -246,8 +264,7 @@
                         "default": "Network Configuration"
                     },
                     "Parameters": [
-                        "PrivateIp",
-                        "SubnetId"
+                        "SubnetIds"
                     ]
                 },
                 {
@@ -270,19 +287,35 @@
         "Version": "1.5.2"
     },
     "Outputs": {
-        "WatchmakerInstanceId": {
-            "Description": "Instance ID",
-            "Export": { "Name" : { "Fn::Sub": "${AWS::StackName}-InstanceId" }},
+        "ScaleDownScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Description": "Scale Down Scheduled Action ID",
+          "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ScaleDownSched" } },
+          "Value": { "Ref": "ScaleDownScheduledAction" }
+        },
+        "ScaleUpScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Description": "Scale Up Scheduled Action ID",
+          "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ScaleUpSched" } },
+          "Value": { "Ref": "ScaleUpScheduledAction" }
+        },
+        "JenkinsASGLCId": {
+          "Description": "Launch Configuration ID",
+          "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-LaunchConfigId" } },
+          "Value": { "Ref": "JenkAgentLC" }
+        },
+        "JenkinsASGInstanceId": {
+            "Description": "Autoscaling Group ID",
             "Value": {
-                "Ref": "Ec2Res"
+                "Ref": "Ec2Asg"
             }
         },
-        "WatchmakerInstanceLogGroupName": {
+        "JenkinsLCLogGroupName": {
             "Condition": "InstallCloudWatchAgent",
             "Description": "Log Group Name",
             "Export": { "Name" : { "Fn::Sub": "${AWS::StackName}-LogGroupName" }},
             "Value": {
-                "Ref": "WatchmakerInstanceLogGroup"
+                "Ref": "JenkinsLCLogGroup"
             }
         }
     },
@@ -358,6 +391,11 @@
             "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/windows/amd64/latest/AmazonCloudWatchAgent.zip",
             "Type": "String"
         },
+        "DesiredCapacity": {
+            "Default": "1",
+            "Description": "Desired number of instances in the Autoscaling Group",
+            "Type": "Number"
+        },
         "InstanceRole": {
             "Default": "",
             "Description": "(Optional) IAM instance role to apply to the instance(s).",
@@ -392,13 +430,23 @@
                 "m5.2xlarge",
                 "m5.4xlarge"
             ],
-            "Default": "t2.small",
+            "Default": "t2.large",
             "Description": "Amazon EC2 instance type",
             "Type": "String"
         },
         "KeyPairName": {
-            "Description": "(Optional) Public/private key pairs allow you to securely connect to your instance after it launches",
-            "Type": "AWS::EC2::KeyPair::KeyName"
+            "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+            "Type": "String"
+        },
+        "MaxCapacity": {
+            "Default": "2",
+            "Description": "Desired number of instances in the Autoscaling Group",
+            "Type": "Number"
+        },
+        "MinCapacity": {
+            "Default": "1",
+            "Description": "Desired number of instances in the Autoscaling Group",
+            "Type": "Number"
         },
         "NoPublicIp": {
             "AllowedValues": [
@@ -418,11 +466,6 @@
             "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
             "Type": "String"
         },
-        "PrivateIp": {
-            "Default": "",
-            "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
-            "Type": "String"
-        },
         "PypiIndexUrl": {
             "AllowedPattern": "^http[s]?://.*$",
             "Default": "https://pypi.org/simple",
@@ -435,13 +478,31 @@
             "Description": "URL to the Python Installer Executable",
             "Type": "String"
         },
+        "RootVolumeSize": {
+          "ConstraintDescription": "Must be between 20GB and 16384GB.",
+          "Default": "20",
+          "Description": "Size in GB of the EBS volume to create. If smaller than AMI default, create operation will fail; If larger, root device-volume's partition size will be increased",
+          "MaxValue": "16384",
+          "MinValue": "20",
+          "Type": "Number"
+        },
+        "ScaleDownSchedule": {
+          "Default": "",
+          "Description": "(Optional) Scheduled Action in cron-format (UTC) to scale down to MinCapacity; ignored if empty or ScaleUpSchedule is unset (E.g. \"0 0 * * *\")",
+          "Type": "String"
+        },
+        "ScaleUpSchedule": {
+          "Default": "",
+          "Description": "(Optional) Scheduled Action in cron-format (UTC) to scale up to MaxCapacity; ignored if empty or ScaleDownSchedule is unset (E.g. \"0 10 * * Mon-Fri\")",
+          "Type": "String"
+        },
         "SecurityGroupIds": {
             "Description": "List of security groups to apply to the instance",
             "Type": "List<AWS::EC2::SecurityGroup::Id>"
         },
-        "SubnetId": {
-            "Description": "ID of the subnet to assign to the instance",
-            "Type": "AWS::EC2::Subnet::Id"
+        "SubnetIds": {
+            "Description": "List of the subnets to associate to the autoscaling group",
+            "Type": "List<AWS::EC2::Subnet::Id>"
         },
         "ToggleCfnInitUpdate": {
             "AllowedValues": [
@@ -498,13 +559,45 @@
         }
     },
     "Resources": {
-        "Ec2Res": {
-            "CreationPolicy": {
-                "ResourceSignal": {
-                    "Count": "1",
-                    "Timeout": "PT60M"
-                }
-            },
+          "Ec2Asg": {
+              "CreationPolicy": {
+                  "ResourceSignal": {
+                      "Count": { "Ref": "DesiredCapacity" },
+                      "Timeout": "PT90M"
+                  }
+              },
+              "Properties": {
+                "DesiredCapacity": { "Ref": "DesiredCapacity" },
+                "LaunchConfigurationName": { "Ref": "JenkAgentLC" },
+                "MaxSize": { "Ref": "MaxCapacity" },
+                "MinSize": { "Ref": "MinCapacity" },
+                "Tags": [
+                  {    
+                    "Key": "Name",
+                    "PropagateAtLaunch": true,
+                    "Value": {
+                      "Fn::Join": [
+                        "",  
+                        [    
+                          { "Ref": "AWS::StackName" }
+                        ]    
+                      ]    
+                    }    
+                  }    
+                ],   
+                "VPCZoneIdentifier": { "Ref": "SubnetIds" }
+              },   
+              "Type": "AWS::AutoScaling::AutoScalingGroup",
+              "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                  "MaxBatchSize": 2, 
+                  "MinInstancesInService": 1, 
+                  "PauseTime": "PT90M",
+                  "WaitOnResourceSignals": true
+                }    
+              }    
+            },   
+            "JenkAgentLC": {
             "Metadata": {
                 "AWS::CloudFormation::Init": {
                     "configSets": {
@@ -617,7 +710,7 @@
                                             {
                                                 "Ref": "AWS::StackName"
                                             },
-                                            " --resource Ec2Res",
+                                            " --resource Ec2Asg",
                                             {
                                                 "Fn::If": [
                                                     "AssignInstanceRole",
@@ -740,7 +833,7 @@
                                                 "Fn::If": [
                                                     "InstallCloudWatchAgent",
                                                     {
-                                                        "Ref": "WatchmakerInstanceLogGroup"
+                                                        "Ref": "JenkinsLCLogGroup"
                                                     },
                                                     {
                                                         "Ref": "AWS::NoValue"
@@ -758,7 +851,7 @@
                                                 "Fn::If": [
                                                     "InstallCloudWatchAgent",
                                                     {
-                                                        "Ref": "WatchmakerInstanceLogGroup"
+                                                        "Ref": "JenkinsLCLogGroup"
                                                     },
                                                     {
                                                         "Ref": "AWS::NoValue"
@@ -776,7 +869,7 @@
                                                 "Fn::If": [
                                                     "InstallCloudWatchAgent",
                                                     {
-                                                        "Ref": "WatchmakerInstanceLogGroup"
+                                                        "Ref": "JenkinsLCLogGroup"
                                                     },
                                                     {
                                                         "Ref": "AWS::NoValue"
@@ -794,7 +887,7 @@
                                                 "Fn::If": [
                                                     "InstallCloudWatchAgent",
                                                     {
-                                                        "Ref": "WatchmakerInstanceLogGroup"
+                                                        "Ref": "JenkinsLCLogGroup"
                                                     },
                                                     {
                                                         "Ref": "AWS::NoValue"
@@ -978,13 +1071,13 @@
                                         [
                                             "[cfn-auto-reloader-hook]\n",
                                             "triggers=post.update\n",
-                                            "path=Resources.Ec2Res.Metadata\n",
+                                            "path=Resources.Ec2Asg.Metadata\n",
                                             "action=cfn-init.exe -v -c update",
                                             " --stack ",
                                             {
                                                 "Ref": "AWS::StackName"
                                             },
-                                            " --resource Ec2Res",
+                                            " --resource JenkAgentLC",
                                             {
                                                 "Fn::If": [
                                                     "AssignInstanceRole",
@@ -1366,11 +1459,19 @@
                 }
             },
             "Properties": {
+                "AssociatePublicIpAddress": {
+                    "Fn::If": [
+                        "AssignPublicIp",
+                        true,
+                        false
+                    ]
+                },
                 "BlockDeviceMappings": [
                     {
                         "DeviceName": "/dev/sda1",
                         "Ebs": {
                             "DeleteOnTermination": true,
+                            "VolumeSize": { "Ref": "RootVolumeSize" },
                             "VolumeType": "gp2"
                         }
                     },
@@ -1415,52 +1516,13 @@
                     "Ref": "InstanceType"
                 },
                 "KeyName": {
-                    "Ref": "KeyPairName"
+                    "Fn::If": [
+                        "UseKeyPair",
+                        { "Ref": "KeyPairName" },
+                        { "Ref": "AWS::NoValue" }
+                    ]
                 },
-                "NetworkInterfaces": [
-                    {
-                        "AssociatePublicIpAddress": {
-                            "Fn::If": [
-                                "AssignPublicIp",
-                                true,
-                                false
-                            ]
-                        },
-                        "DeviceIndex": "0",
-                        "GroupSet": {
-                            "Ref": "SecurityGroupIds"
-                        },
-                        "PrivateIpAddress": {
-                            "Fn::If": [
-                                "AssignStaticPrivateIp",
-                                {
-                                    "Ref": "PrivateIp"
-                                },
-                                {
-                                    "Ref": "AWS::NoValue"
-                                }
-                            ]
-                        },
-                        "SubnetId": {
-                            "Ref": "SubnetId"
-                        }
-                    }
-                ],
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": {
-                            "Fn::Join": [
-                                "",
-                                [
-                                    {
-                                        "Ref": "AWS::StackName"
-                                    }
-                                ]
-                            ]
-                        }
-                    }
-                ],
+                "SecurityGroups": { "Ref": "SecurityGroupIds" },
                 "UserData": {
                     "Fn::Base64": {
                         "Fn::Join": [
@@ -1483,7 +1545,7 @@
                                 {
                                     "Ref": "AWS::StackName"
                                 },
-                                " --resource Ec2Res ",
+                                " --resource JenkAgentLC ",
                                 {
                                     "Fn::If": [
                                         "AssignInstanceRole",
@@ -1530,7 +1592,7 @@
                                 {
                                     "Ref": "AWS::StackName"
                                 },
-                                " --resource Ec2Res ",
+                                " --resource Ec2Asg ",
                                 {
                                     "Fn::If": [
                                         "AssignInstanceRole",
@@ -1580,9 +1642,31 @@
                     }
                 }
             },
-            "Type": "AWS::EC2::Instance"
+            "Type": "AWS::AutoScaling::LaunchConfiguration"
         },
-        "WatchmakerInstanceLogGroup": {
+        "ScaleDownScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Properties": {
+            "AutoScalingGroupName": { "Ref": "Ec2Asg" },
+            "DesiredCapacity": { "Ref": "MinCapacity" },
+            "MaxSize": { "Ref": "MinCapacity" },
+            "MinSize": { "Ref": "MinCapacity" },
+            "Recurrence": { "Ref": "ScaleDownSchedule" }
+          },
+          "Type": "AWS::AutoScaling::ScheduledAction"
+        },
+        "ScaleUpScheduledAction": {
+          "Condition": "UseScheduledAction",
+          "Properties": {
+            "AutoScalingGroupName": { "Ref": "Ec2Asg" },
+            "DesiredCapacity": { "Ref": "DesiredCapacity" },
+            "MaxSize": { "Ref": "MaxCapacity" },
+            "MinSize": { "Ref": "MinCapacity" },
+            "Recurrence": { "Ref": "ScaleUpSchedule" }
+          },
+          "Type": "AWS::AutoScaling::ScheduledAction"
+        },
+        "JenkinsLCLogGroup": {
             "Condition": "InstallCloudWatchAgent",
             "Properties": {
                 "LogGroupName": {

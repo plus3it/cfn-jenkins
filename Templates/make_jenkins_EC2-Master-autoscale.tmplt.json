@@ -72,11 +72,6 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerAdminGroups" }, "" ] }
       ]
     },
-    "UseAdminPubkeyURL": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "AdminPubkeyURL" }, "" ] }
-      ]
-    },
     "UseAdminUsers": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "WatchmakerAdminUsers" }, "" ] }
@@ -96,11 +91,6 @@
       "Fn::Or": [
         { "Condition": "UseLoadBalancerNames" },
         { "Condition": "UseTargetGroupArns" }
-      ]
-    },
-    "UseComputerName": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "WatchmakerComputerName" }, "" ] }
       ]
     },
     "UseEnvironment": {
@@ -702,7 +692,7 @@
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "UpdatePolicy": {
         "AutoScalingReplacingUpdate": {
-          "WillReplace": "true"
+          "WillReplace": true
         }
       }
     },
