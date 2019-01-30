@@ -1,0 +1,34 @@
+[
+    {
+        "ParameterKey": "BucketTemplate",
+        "ParameterValue": "https://s3.<AWS_REGION>.<AWS_URL_SUFFIX>/<BUCKET_NAME>/<OBJECT_PATH-KEY>/make_jenkins_S3-bucket.tmplt.json"
+    },
+    {
+        "ParameterKey": "IamRoleTemplate",
+        "ParameterValue": "https://s3.<AWS_REGION>.<AWS_URL_SUFFIX>/<BUCKET_NAME>/<OBJECT_PATH-KEY>/make_jenkins_IAM-role.tmplt.json"
+    },
+    {
+        "ParameterKey": "JenkinsAgentPort",
+        "ParameterValue": "<PORT_NUMBER_USED_BY_JNLP_CLIENTS>"
+    },
+    {
+        "ParameterKey": "JenkinsBackupBucket",
+        "ParameterValue": "<MAY_BE_NULL>"
+    },
+    {
+        "ParameterKey": "RolePrefix",
+        "ParameterValue": "<MAY_BE_NULL>"
+    },
+    {
+        "ParameterKey": "SecurityGroupTemplate",
+        "ParameterValue": "https://s3.<AWS_REGION>.<AWS_URL_SUFFIX>/<BUCKET_NAME>/<OBJECT_PATH-KEY>/make_jenkins_SGs.tmplt.json"
+    },
+    {
+        "ParameterKey": "ServiceTld",
+        "ParameterValue": "<AWS_URL_SUFFIX>"
+    },
+    {
+        "ParameterKey": "TargetVPC",
+        "ParameterValue": "<DEPLOYMENT_VPC_ID>"
+    }
+]
