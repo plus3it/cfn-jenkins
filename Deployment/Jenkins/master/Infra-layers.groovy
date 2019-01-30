@@ -93,10 +93,10 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to delete any active ${CfnStackRoot}-Infra-${BUILD_NUMBER} stacks... "
-                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-Infra-${BUILD_NUMBER}"
+                        echo "Attempting to delete any active ${CfnStackRoot}-Infra stacks... "
+                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-Infra"
 
-                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-Infra-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-Infra --region ${AwsRegion}
                     '''
                 }
             }
@@ -110,13 +110,13 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to create stack ${CfnStackRoot}-Infra-${BUILD_NUMBER}..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Infra-${BUILD_NUMBER}" \
+                        echo "Attempting to create stack ${CfnStackRoot}-Infra..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Infra" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-body file://Templates/make_jenkins_infra.tmplt.json \
                           --parameters file://service-infra.parms.json
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-Infra-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-Infra --region ${AwsRegion}
                     '''
                 }
             }

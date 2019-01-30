@@ -217,10 +217,10 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-${BUILD_NUMBER} stacks... "
-                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-Ec2Res-${BUILD_NUMBER}"
+                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res stacks... "
+                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-Ec2Res"
 
-                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-Ec2Res-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-Ec2Res --region ${AwsRegion}
                     '''
                 }
             }
@@ -237,13 +237,13 @@ pipeline {
                         printf 'export SIGNED_URL="%s"' "\$( aws s3 presign ${ChainScriptUrl} )" > /tmp/SIGNED_URL.txt
                         source /tmp/SIGNED_URL.txt
                         printenv | sort
-                        echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-${BUILD_NUMBER}..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Ec2Res-${BUILD_NUMBER}" \
+                        echo "Attempting to create stack ${CfnStackRoot}-Ec2Res..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Ec2Res" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://<( sed "s#__SIGNED_URL__#${SIGNED_URL//&/\\&}#" agent.instance.parms.json )
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-Ec2Res-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-Ec2Res --region ${AwsRegion}
                     '''
                 }
             }
