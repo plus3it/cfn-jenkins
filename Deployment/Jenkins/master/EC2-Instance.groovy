@@ -245,10 +245,10 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER} stacks..."
-                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER}"
+                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Inst stacks..."
+                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-Ec2Inst"
 
-                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-Ec2Inst --region ${AwsRegion}
                     '''
                 }
             }
@@ -262,13 +262,13 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to create stack ${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER}..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER}" \
+                        echo "Attempting to create stack ${CfnStackRoot}-Ec2Inst..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-Ec2Inst" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://master.ec2.instance.parms.json
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-Ec2Inst --region ${AwsRegion}
                     '''
                 }
             }
@@ -281,9 +281,9 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "retrieving instance ID for ${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER}..."
+                        echo "retrieving instance ID for ${CfnStackRoot}-Ec2Inst..."
 
-                        InstanceId=$(aws ec2 describe-instances --filters "Name=tag:Name, Values=${CfnStackRoot}-Ec2Inst-${BUILD_NUMBER}" --query "Reservations[].Instances[].InstanceId[]" --output text)
+                        InstanceId=$(aws ec2 describe-instances --filters "Name=tag:Name, Values=${CfnStackRoot}-Ec2Inst" --query "Reservations[].Instances[].InstanceId[]" --output text)
 
                         echo "Attaching ${InstanceId} to ${ElbName}..."
 

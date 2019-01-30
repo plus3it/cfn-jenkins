@@ -278,10 +278,10 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to delete any active ${CfnStackRoot}-AsgRes-${BUILD_NUMBER} stacks..."
-                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-AsgRes-${BUILD_NUMBER}"
+                        echo "Attempting to delete any active ${CfnStackRoot}-AsgRes stacks..."
+                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-AsgRes"
 
-                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-AsgRes-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-AsgRes --region ${AwsRegion}
                     '''
                 }
             }
@@ -294,8 +294,8 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to create stack ${CfnStackRoot}-AsgRes-${BUILD_NUMBER}..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-AsgRes-${BUILD_NUMBER}" \
+                        echo "Attempting to create stack ${CfnStackRoot}-AsgRes..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-AsgRes" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://Jenkins-Ec2-Master-ASG.parms.json
@@ -304,19 +304,19 @@ pipeline {
                         # Pause if create is slow
                         while [[ $(
                                     aws cloudformation describe-stacks \
-                                      --stack-name ${CfnStackRoot}-AsgRes-${BUILD_NUMBER} \
+                                      --stack-name ${CfnStackRoot}-AsgRes \
                                       --query 'Stacks[].{Status:StackStatus}' \
                                       --out text 2> /dev/null | \
                                     grep -q CREATE_IN_PROGRESS
                                    )$? -eq 0 ]]
                         do
-                           echo "Waiting for stack ${CfnStackRoot}-AsgRes-${BUILD_NUMBER} to finish create process..."
+                           echo "Waiting for stack ${CfnStackRoot}-AsgRes to finish create process..."
                            sleep 30
                         done
 
                         if [[ $(
                                 aws cloudformation describe-stacks \
-                                  --stack-name ${CfnStackRoot}-AsgRes-${BUILD_NUMBER} \
+                                  --stack-name ${CfnStackRoot}-AsgRes \
                                   --query 'Stacks[].{Status:StackStatus}' \
                                   --out text 2> /dev/null | \
                                 grep -q CREATE_COMPLETE

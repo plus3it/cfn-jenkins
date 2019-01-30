@@ -581,7 +581,7 @@
           "chain-script": {
             "commands": {
               "1-run-chain-script": {
-                "command": "bash -e /etc/cfn/scripts/chain-script"
+                "command": "bash -xe /etc/cfn/scripts/chain-script"
               }
             },
             "files": {

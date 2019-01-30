@@ -107,10 +107,10 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to delete any active ${CfnStackRoot}-ParInst-${BUILD_NUMBER} stacks... "
-                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-ParInst-${BUILD_NUMBER}"
+                        echo "Attempting to delete any active ${CfnStackRoot}-ParInst stacks... "
+                        aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-ParInst"
 
-                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-ParInst-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-ParInst --region ${AwsRegion}
                     '''
                 }
             }
@@ -127,13 +127,13 @@ pipeline {
                     ]
                 ) {
                     sh '''#!/bin/bash
-                        echo "Attempting to create stack ${CfnStackRoot}-ParInst-${BUILD_NUMBER}..."
-                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ParInst-${BUILD_NUMBER}" \
+                        echo "Attempting to create stack ${CfnStackRoot}-ParInst..."
+                        aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ParInst" \
                           --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                           --template-url "${TemplateUrl}" \
                           --parameters file://parent.instance.parms.json
 
-                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-ParInst-${BUILD_NUMBER} --region ${AwsRegion}
+                        aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-ParInst --region ${AwsRegion}
                     '''
                 }
             }

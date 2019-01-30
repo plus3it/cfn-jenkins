@@ -100,10 +100,10 @@ stages {
                 ]
             ) {
                 sh '''#!/bin/bash
-                    echo "Attempting to delete any active ${CfnStackRoot}-ELbv1-${BUILD_NUMBER} stacks... "
-                    aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-ELbv1-${BUILD_NUMBER}"
+                    echo "Attempting to delete any active ${CfnStackRoot}-ELbv1 stacks... "
+                    aws --region "${AwsRegion}" cloudformation delete-stack --stack-name "${CfnStackRoot}-ELbv1"
 
-                    aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-ELbv1-${BUILD_NUMBER} --region ${AwsRegion}
+                    aws cloudformation wait stack-delete-complete --stack-name ${CfnStackRoot}-ELbv1 --region ${AwsRegion}
                 '''
             }
         }
@@ -117,13 +117,13 @@ stages {
                 ]
             ) {
                 sh '''#!/bin/bash
-                    echo "Attempting to create stack ${CfnStackRoot}-ELbv1-${BUILD_NUMBER}..."
-                    aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ELbv1-${BUILD_NUMBER}" \
+                    echo "Attempting to create stack ${CfnStackRoot}-ELbv1..."
+                    aws --region "${AwsRegion}" cloudformation create-stack --stack-name "${CfnStackRoot}-ELbv1" \
                       --disable-rollback --capabilities CAPABILITY_NAMED_IAM \
                       --template-url "${TemplateUrl}" \
                       --parameters file://master.ec2.instance.parms.json
 
-                    aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-ELbv1-${BUILD_NUMBER} --region ${AwsRegion}
+                    aws cloudformation wait stack-create-complete --stack-name ${CfnStackRoot}-ELbv1 --region ${AwsRegion}
                 '''
             }
         }
