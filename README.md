@@ -49,12 +49,18 @@ See the `docs` subdirectory. It currently contains the following documents:
 * [ProjectLayout.md](docs/ProjectLayout.md): Describes the overall layout for this git project.
 * Automated Deployment with AWS Native Tooling: Collection of documents describing using (primarily) the AWS CLI to directly-deploy CloudFormation stacks from this project's templates.
     * Master Server Elements
-        * [SecurityGroup-Deployment-AWSnative.md](docs/SecurityGroup-Deployment-AWSnative.md)
-        * [S3-Deployment-AWSnative.md](docs/S3-Deployment-AWSnative.md)
-        * [IAM-Deployment-AWSnative.md](docs/IAM-Deployment-AWSnative.md)
-        * [ELBv1-Deployment-AWSnative.md](docs/ELBv1-Deployment-AWSnative.md)
-        * [Master-Deployment-AWSnative.md](docs/Master-Deployment-AWSnative.md)
-        * [OneButtonMasterDeployment-AWSnative.md](docs/OneButtonMasterDeployment-AWSnative.md)
+        * Consolidated Deployment
+            * ["Fresh" Deployment](docs/Deployment-Fresh.md)
+            * [Upgrade "In Place"](docs/Deployment-Upgrade_InPlace-OS.md) - OS/AMI/Instance-only
+            * [Upgrade "In Place"](docs/Deployment-Upgrade_InPlace-Service.md) - Jenkins Service
+            * [Parallel Upgrade](docs/Deployment-Upgrade_Parallel.md) - OS and/or Jenkins Service
+        * "Template-at-a-time" Deployment
+            * [SecurityGroup-Deployment-AWSnative.md](docs/SecurityGroup-Deployment-AWSnative.md)
+            * [S3-Deployment-AWSnative.md](docs/S3-Deployment-AWSnative.md)
+            * [IAM-Deployment-AWSnative.md](docs/IAM-Deployment-AWSnative.md)
+            * [ELBv1-Deployment-AWSnative.md](docs/ELBv1-Deployment-AWSnative.md)
+            * [Master-Deployment-AWSnative.md](docs/Master-Deployment-AWSnative.md)
+            * [OneButtonMasterDeployment-AWSnative.md](docs/OneButtonMasterDeployment-AWSnative.md)
     * Agent Server Elements
         * [Agent-Linux-Deployment-AWSnative.md](docs/Agent-Linux-Deployment-AWSnative.md)
         * [Agent-Windows-Deployment-AWSnative.md](docs/Agent-Windows-Deployment-AWSnative.md)
