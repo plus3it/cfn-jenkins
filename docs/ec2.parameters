@@ -1,0 +1,130 @@
+[
+    {
+        "ParameterKey": "AdminPubkeyURL",
+        "ParameterValue": "https://s3.<AWS_REGION><AWS_URL_SUFFIX>/<BUCKET_NAME>/<OBJECT_PATH-KEY>/<GROUP_KEYFILE_NAME>"
+    },
+    {
+        "ParameterKey": "AmiId",
+        "ParameterValue": "<AMI_ID>"
+    },
+    {
+        "ParameterKey": "AppVolumeDevice",
+        "ParameterValue": "<BOOLEAN>"
+    },
+    {
+        "ParameterKey": "AppVolumeMountPath",
+        "ParameterValue": "<FULLY_QUALIFIED_PATH>"  <-- Usually "/var/lib/jenkins"
+    },
+    {
+        "ParameterKey": "AppVolumeSize",
+        "ParameterValue": "<SIZE_TO_MAKE_JENKINS_HOME>"
+    },
+    {
+        "ParameterKey": "AppVolumeType",
+        "ParameterValue": "< "gp2 || io1 || sc1 || st1 || standard>"
+    },
+    {
+        "ParameterKey": "BackupBucket",
+        "ParameterValue": "<BUCKET_NAME_FROM_S3_STACK_OUTPUT>"
+    },
+    {
+        "ParameterKey": "BackupCronURL",
+        "ParameterValue": "https://s3.<AWS_REGION><AWS_URL_SUFFIX>/<BUCKET_NAME>/<OBJECT_PATH-KEY>/jenkins_backups.cron"
+    },
+    {
+        "ParameterKey": "BackupFolder",
+        "ParameterValue": "Backups"
+    },
+    {
+        "ParameterKey": "CfnEndpointUrl",
+        "ParameterValue": "https://cloudformation.<AWS_REGION>.<AWS_URL_SUFFIX>"
+    },
+    {
+        "ParameterKey": "DnsSuffix",
+        "ParameterValue": "<DNS_DOMAIN_OF_SERVICE>"
+    },
+    {
+        "ParameterKey": "EpelRepo",
+        "ParameterValue": "<NAME_OF_EPEL_REPO>"  <-- Usually just "epel"
+    },
+    {
+        "ParameterKey": "InstanceRole",
+        "ParameterValue": "<IAM_ROLE_NAME_FROM_IAM_STACK_OUTPUT>"
+    },
+    {
+        "ParameterKey": "InstanceType",
+        "ParameterValue": "<VALID_AWS_INSTANCE_TYPE>"
+    },
+    {
+        "ParameterKey": "JenkinsAppinstallScriptUrl",
+        "ParameterValue": "https://s3.<AWS_REGION><AWS_URL_SUFFIX>/<BUCKET_NAME>/<OBJECT_PATH-KEY>/jenkins_appinstall.sh"
+    },
+    {
+        "ParameterKey": "JenkinsOsPrepScriptUrl",
+        "ParameterValue": "https://s3.<AWS_REGION><AWS_URL_SUFFIX>/<BUCKET_NAME>/<OBJECT_PATH-KEY>/jenkins_osprep.sh"
+    },
+    {
+        "ParameterKey": "JenkinsRepoKeyURL",
+        "ParameterValue": "<URL_OF_RPM_SIGNING-KEY>"
+    },
+    {
+        "ParameterKey": "JenkinsRepoURL",
+        "ParameterValue": "<URL_OF_YUM_REPO>"
+    },
+    {
+        "ParameterKey": "JenkinsRpmName",
+        "ParameterValue": "<NAME_OR_RPM>"  <-- Include "-X.Y.Z" to pin to a specific version
+    },
+    {
+        "ParameterKey": "KeyPairName",
+        "ParameterValue": "<MAY_BE_NULL>"
+    },
+    {
+        "ParameterKey": "NoPublicIp",
+        "ParameterValue": "<BOOLEAN>"
+    },
+    {
+        "ParameterKey": "NoReboot",
+        "ParameterValue": "<BOOLEAN>"
+    },
+    {
+        "ParameterKey": "NoUpdates",
+        "ParameterValue": "<BOOLEAN>"
+    },
+    {
+        "ParameterKey": "PipIndexFips",
+        "ParameterValue": "<URL_OF_PYPI_INDEX>"
+    },
+    {
+        "ParameterKey": "PipRpm",
+        "ParameterValue": "python2-pip"
+    },
+    {
+        "ParameterKey": "ProvisionUser",
+        "ParameterValue": "<NAME_TO_ASSIGN_TO_EC2_DEFAULT_USER_ACCOUNT>"
+    },
+    {
+        "ParameterKey": "PyStache",
+        "ParameterValue": "pystache"
+    },
+    {
+        "ParameterKey": "SecurityGroupIds",
+        "ParameterValue": "<SECURITY_GROUP_ID_FROM_SG_STACK_OUTPUT>"
+    },
+    {
+        "ParameterKey": "ServerHostname",
+        "ParameterValue": "<NODENAME_TO_ASSIGN_TO_INSTANCE>"
+    },
+    {
+        "ParameterKey": "SubnetIds",
+        "ParameterValue": "<SUBNET_TO_DEPLOY_INSTANCE_INTO>"
+    },
+    {
+        "ParameterKey": "WatchmakerConfig",
+        "ParameterValue": "<MAY_BE_NULL>"
+    },
+    {
+        "ParameterKey": "WatchmakerEnvironment",
+        "ParameterValue": "<(null) || dev || test || prod>"
+    }
+]

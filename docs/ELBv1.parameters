@@ -1,0 +1,38 @@
+[
+    {
+        "ParameterKey": "BackendTimeout",
+        "ParameterValue": "<TIMEOUT_IN_SECONDS>" <-- Recommend value >= 600
+    },
+    {
+        "ParameterKey": "HaSubnets",
+        "ParameterValue": "<USER_FACING_VPC_SUBNETS>
+    },
+    {
+        "ParameterKey": "JenkinsAgentPort",
+        "ParameterValue": "<PORT_NUMBER_USED_BY_JNLP_CLIENTS>"
+    },
+    {
+        "ParameterKey": "JenkinsListenerCert",
+        "ParameterValue": "<ACM_CERT_ID || IAM_SERVER_CERTIFICATE_NAME>"
+    },
+    {
+        "ParameterKey": "JenkinsListenPort",
+        "ParameterValue": "<USER_FACING_LISTENING_PORT_NUMBER>"
+    },
+    {
+        "ParameterKey": "JenkinsPassesSsh",
+        "ParameterValue": "<BOOLEAN>"
+    },
+    {
+        "ParameterKey": "JenkinsServicePort",
+        "ParameterValue": "<PRIVATE_LISTENING_PORT_NUMBER>"
+    },
+    {
+        "ParameterKey": "ProxyPrettyName",
+        "ParameterValue": "<MAY_BE_NULL>"
+    },
+    {
+        "ParameterKey": "SecurityGroupIds",
+        "ParameterValue": "<APPLICATION_SECURITY_GROUP_ID>"
+    }
+]
